@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define FALSE 0
+#define TRUE 1
+
 /**
  * @brief A parsed command from the command-line.
  * 
@@ -79,6 +82,100 @@ void free_struct_command(struct command * c) {
 }
 
 /**
+ * @brief Tokenizes the buffer into the command struct. 
+ * 
+ * @param buffer 
+ * @param size 
+ * @param command 
+ */
+void tokenize(char * buffer, size_t size, struct command * command) {
+    for(int i = 0; i<size; i++) {
+
+    }
+}
+
+/**
+ * @brief Inserts the given filename into the command struct.
+ * If I_RDIR is NON-NULL, then the file is meant to have input redirection from I_RDIR
+ * If O_RDIR is NON-NULL, then the file is meant to have output redirection to be to O_RDIR
+ * 
+ * @param filename 
+ * @param command 
+ * @param I_RDIR 
+ * @param O_RDIR 
+ */
+void insert(char * filename, struct command * command, char * I_RDIR, char * O_RDIR) {
+
+    struct file * my_file = malloc(sizeof(struct file));
+    my_file -> name = filename;
+    my_file -> input = I_RDIR;
+    my_file -> output = O_RDIR;
+
+    command -> files [command -> size] = my_file; //insert the file into the command
+    (command -> size)++;                          //incremenet the size of files within command
+}
+
+/**
+ * @brief Obtains and returns the previous file specified within buffer which is less than i.
+ * 
+ * If the previous token is not a valid file, this method returns null.
+ * 
+ * @param buffer 
+ * @param i 
+ * @return char* 
+ */
+char * previous(char * buffer, int i, size_t size) {
+    char * file = malloc(size * sizeof(char));
+    //March backwards from buffer[i] and continuously append each character into file
+    //Once you reach a whitepsace, you are done tokenizing that particular file.
+}
+
+/**
+ * @brief Obtains and returns the next file specified within the buffer, which is strictly larger than i and less than size.
+ * 
+ * If a file is not valid within those parameters, this function returnsn null.
+ * 
+ * @param buffer 
+ * @param i 
+ * @param size 
+ * @return char* 
+ */
+char * next(char * buffer, int i, size_t size) {
+    //March forwards from buffer[i+1], continously appending each charater seen into a string. Once you reach whitespace, you are done.
+    i++; //We want the next element starting at i+1
+    char * file = malloc((size-i) * sizeof(char));
+    int file_index = 0;
+    while(i < size) {
+        char c = buffer[i];
+        switch(c) {
+            case ' ' : {
+                file[file_index] = '\0';
+                return file;
+            }
+            case '>' : {
+                file[file_index] = '\0';
+                return file;
+            }
+            case '<' : {
+                file[file_index] = '\0';
+                return file;
+            }
+            case '|' : {
+                file[file_index] = '\0';
+                return file;
+            }
+            default : {
+                file[file_index] = c;
+                file_index++;
+            }
+        }
+    }
+
+    return NULL; //invalid (or maybe not?)
+
+
+}   
+/**
  * @brief Parses the command-line, given in buffer (which contains size number of bytes).
  * 
  * @param buffer contains the command to be parsed
@@ -90,8 +187,38 @@ void free_struct_command(struct command * c) {
 struct command * parse(char * buffer, size_t size) {
     
     struct command * command = new_command_struct();
+    
+    char * s = malloc(size * sizeof(char));
+
+    int s_index = 0;
+
+    char * I_RDIR = NULL; //Input redirection
+    char * O_RDIR = NULL; //Output redirection
 
     for(int i = 0; i<size; i++) {
-
+        char c = buffer[i];
+        switch(c) {
+            case ' ' : { //white space separates files
+                s[s_index] = '\0';
+                insert(s, command, I_RDIR, O_RDIR);
+                I_RDIR = NULL;
+                O_RDIR = NULL;
+                s = malloc(size * sizeof(char));
+                s_index = 0;
+                break;
+            }
+            case '<' : { //Input redirection
+                I_RDIR = previous(buffer, i);
+                break;
+            }
+            case '>' : { //Output redirection
+                O_RDIR = next(buffer, i, size);
+                break;
+            }
+            default : {
+                s[s_index] = c;
+                s_index++;
+            }
+        }
     }
 }
