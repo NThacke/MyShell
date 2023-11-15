@@ -208,7 +208,7 @@ struct command * parse(char * buffer, size_t size) {
                 break;
             }
             case '<' : { //Input redirection
-                I_RDIR = previous(buffer, i);
+                I_RDIR = previous(buffer, i, size);
                 break;
             }
             case '>' : { //Output redirection
