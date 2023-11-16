@@ -26,7 +26,19 @@ void test0() {
 
     traverse_command(command);
 }
+
+void test1() {
+    char * buffer = "bar < baz";
+    size_t length = size(buffer);
+    char cwd [PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+
+    struct command * command = parse(cwd, buffer, length);
+    // free_struct_command(command);
+
+    traverse_command(command);
+}
 int main(void) {
 
-    test0();
+    test1();
 }
