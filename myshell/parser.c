@@ -98,8 +98,17 @@ struct command * new_command_struct() {
     c -> size = 0;
     return c;
 }
+void traverseFile(struct file * file) {
+    printf("------------\n");
+    for(int i = 0; i<file -> size; i++) {
+        printf("'%s'\n", file -> args[i]);
+    }
+    printf("------------\n");   
+}
 
 void free_file_struct(struct file * file) {
+    printf("Freeing file struct with size of %d\n", file -> size);
+    traverseFile(file);
     for(int i = 0; i<file->size; i++) {
         free(file->args[i]);
     }
@@ -149,6 +158,20 @@ void free_token_helper(struct token_helper * helper) {
 }
 
 /**
+ * @brief Creates a new file struct on the heap, with all entries as NULL (for pointers) and 0 (for integers).
+ * 
+ * @return struct file* 
+ */
+struct file * new_file_struct() {
+    struct file * file = malloc(sizeof(struct file));
+    file -> args = NULL;
+    file -> input = NULL;
+    file -> output = NULL;
+    file -> size = 0;
+    return file;
+}
+
+/**
  * @brief Tokenizes a file from the buffer starting at the given index. Returns a token_helper struct which contains the file that was toknized as well as the index to next be parsed..
  * 
  * @param buffer 
@@ -160,7 +183,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
     printf("Tokenizing a file from buffer starting at index %d\n", index);
     
     struct token_helper * helper = malloc(sizeof(struct token_helper));
-    struct file * file = malloc(sizeof(struct file));
+    struct file * file = new_file_struct();
     helper -> file = file;
     
 
@@ -267,13 +290,6 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
 
 }  
 
-void traverseFile(struct file * file) {
-    printf("------------\n");
-    for(int i = 0; i<file -> size; i++) {
-        printf("'%s'\n", file -> args[i]);
-    }
-    printf("------------\n");   
-}
 /**
  * @brief Parses the command-line, given in buffer (which contains size number of bytes).
  * 
@@ -290,8 +306,8 @@ struct command * parse(char * buffer, size_t size) {
     struct token_helper * helper = tokenizeFile(buffer, size, 0);
 
     if(helper != NULL) {
-    traverseFile(helper -> file);
-    free_token_helper(helper);
+        traverseFile(helper -> file);
+        free_token_helper(helper);
     }
 
     return NULL;
