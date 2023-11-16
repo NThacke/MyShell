@@ -1,5 +1,21 @@
 /**
  * @brief This file contains the command line parser.
+ * 
+ * By invocation of the function parse(), you will be returned a command struct which contains any information you would want to know about the command.
+ * 
+ * Note that this parser does NOT check for conditionals; it merely parses a command. A conditional (if/then/else) should be handled outside the scope of the parser.
+ * 
+ * In particular, if you have the following :
+ * 
+ * foo | biz
+ * then biz > baz
+ * 
+ * The command line-parser will be able to parse out the command "foo | biz", and return a command struct relating to it.
+ * 
+ * The external program that invokes the parser should check if there is a conditional. This is the program which will actually execute commands.
+ * In that program, we can check if the previous command (foo | biz) succeeded. If so, then we run the command associated with "biz > baz", which is parsed from the parser.
+ * 
+ * 
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +23,12 @@
 
 #define FALSE 0
 #define TRUE 1
+
+
+/**
+ * @brief The current working directory
+ */
+char * cwd = NULL;
 
 /**
  * @brief This enum is used to signify when redirection occurs.
@@ -200,12 +222,20 @@ void traverse_command(struct command * command) {
  * @param index 
  * @return char* 
  */
-char * wildcard_f(char * buffer, size_t size, int index) {
+char * determine_wildcard(char * buffer, size_t size, int index) {
     if(buffer[index] == '*') {
-        char * s = malloc(size * sizeof(char));
 
     }
-    return NULL; //invalid
+    return NULL;
+}
+struct wildcard_components * valid_wildcards(char * wildcard) {
+    return NULL;
+}
+int next_space(char * buffer, size_t size, int index) {
+    while(index < size && buffer[index] != ' ') {
+        index++;
+    }
+    return index;
 }
 /**
  * @brief Tokenizes a file from the buffer starting at the given index. Returns a token_helper struct which contains the file that was toknized as well as the index to next be parsed.
@@ -302,7 +332,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     args[args_index] = wildcard_components ->wildcards[i];
                     args_index++;
                 }
-                
+
                 //reset
                 index = next_space(buffer, size, index); //index goes to the next space character, as we do not want to parse the wildcard any further.
 
@@ -374,8 +404,12 @@ void insert(struct command * command, struct token_helper * helper) {
  * 
  * Note : This current implementation does not support wildcards, and simply creates a command struct given a series of file names, redirection, or pipes.
  */
-struct command * parse(char * buffer, size_t size) {
+struct command * parse(char * current_dir, char * buffer, size_t size) {
     
+    cwd = current_dir;
+
+    printf("cwd is '%s'\n", cwd);
+
     struct command * command = new_command_struct();
     
     struct token_helper * helper = tokenizeFile(buffer, size, 0);
