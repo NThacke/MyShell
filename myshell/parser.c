@@ -427,8 +427,8 @@ struct command * parse(char * current_dir, char * buffer, size_t size) {
                 break;
             }
             case input : {
-                helper -> file -> input = previous -> name;
-                previous -> output = helper -> file -> name;
+                helper -> file -> output = previous -> name;
+                previous -> input = helper -> file -> name;
                 break;
             }
             case pipe : {
