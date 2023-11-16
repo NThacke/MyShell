@@ -189,7 +189,7 @@ void free_struct_command(struct command * c) {
 
 void free_token_helper(struct token_helper * helper) {
     if(helper != NULL) {
-        free_file_struct(helper -> file);
+        // free_file_struct(helper -> file);
         free(helper);
     }
 }

@@ -52,8 +52,9 @@ void test_override() {
     getcwd(cwd, sizeof(cwd));
 
     struct command * command = parse(cwd, buffer, length); //no need to free.. (causes double free)... why?
+    free(command);
 }
 int main(void) {
 
-    test_override();
+    test1();
 }
