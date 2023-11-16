@@ -9,6 +9,18 @@
 #define TRUE 1
 
 /**
+ * @brief This enum is used to signify when redirection occurs.
+ * 
+ * input   === '<'
+ * output  === '>'
+ * pipe    === '|'
+ * nil     === none of the above
+ * 
+ */
+enum redirection {
+    input, output, pipe, nil
+};
+/**
  * @brief A parsed command from the command-line.
  * 
  */
@@ -100,6 +112,10 @@ struct command * new_command_struct() {
 }
 void traverseFile(struct file * file) {
     printf("------------\n");
+    printf("File name : '%s'\n", file -> name);
+    printf("File input : '%s'\n", file -> input);
+    printf("File output : '%s'\n", file -> output);
+    printf("File arguments ... \n");
     for(int i = 0; i<file -> size; i++) {
         printf("'%s'\n", file -> args[i]);
     }
@@ -133,26 +149,6 @@ void free_struct_command(struct command * c) {
     }
 }
 
-// /**
-//  * @brief Inserts the given filename into the command struct.
-//  * If I_RDIR is NON-NULL, then the file is meant to have input redirection from I_RDIR
-//  * If O_RDIR is NON-NULL, then the file is meant to have output redirection to be to O_RDIR
-//  * 
-//  * @param filename 
-//  * @param command 
-//  * @param I_RDIR 
-//  * @param O_RDIR 
-//  */
-// void insert(char * filename, struct command * command, char * I_RDIR, char * O_RDIR) {
-
-//     struct file * my_file = malloc(sizeof(struct file));
-//     my_file -> name = filename;
-//     my_file -> input = I_RDIR;
-//     my_file -> output = O_RDIR;
-
-//     command -> files [command -> size] = my_file; //insert the file into the command
-//     (command -> size)++;                          //incremenet the size of files within command
-// }
 
 void free_token_helper(struct token_helper * helper) {
     if(helper != NULL) {
@@ -210,15 +206,16 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
         switch(c) {
             case ' ' : {
                 //Insert the parsed word/argument into the list of arguments
-                word[word_index] = '\0';
-                word = realloc(word, word_index+1); //we now know the exact length
-                args[args_index] = word; 
-                printf("Parsed a token : '%s'\n", word);
-                //Reset
-                word_index = 0;
-                word = malloc(size * sizeof(char));
-                args_index++;
-
+                if(word_index > 0) {
+                    word[word_index] = '\0';
+                    word = realloc(word, word_index+1); //we now know the exact length
+                    args[args_index] = word; 
+                    printf("Parsed a token : '%s'\n", word);
+                    //Reset
+                    word_index = 0;
+                    word = malloc(size * sizeof(char));
+                    args_index++;
+                }
                 break;
             }
             case '<' : {
@@ -230,6 +227,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     helper -> index = index;
                     return helper;
                 }
+                break;
                 // free_token_helper(helper);
                 // free(args);
                 // free(word);
@@ -244,6 +242,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     helper -> index = index;
                     return helper;
                 }
+                break;
                 // free_token_helper(helper);
                 // free(args);
                 // free(word);
@@ -258,6 +257,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     helper -> index = index;
                     return helper;
                 }
+                break;
                 // free_token_helper(helper);
                 // free(args);
                 // free(word);
@@ -266,6 +266,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
             default : {
                 word[word_index] = c;
                 word_index++;
+                break;
             }
         }
         index++;
@@ -332,14 +333,66 @@ struct command * parse(char * buffer, size_t size) {
     
     struct token_helper * helper = tokenizeFile(buffer, size, 0);
 
+    struct file * previous = NULL;
+
+    enum redirection redirect = nil;
+
     while(helper != NULL) {
+
+        switch(redirect) { //piping is the same thing as redirection, it's just that piping is between programs and not literal files!
+            case output : {
+                helper -> file -> input = previous -> name;
+                previous -> output = helper -> file -> name;
+                break;
+            }
+            case input : {
+                helper -> file -> input = previous -> name;
+                previous -> output = helper -> file -> name;
+                break;
+            }
+            case pipe : {
+                helper -> file -> input = previous -> name;
+                previous -> output = helper -> file -> name;
+                break;
+            }
+            default : {
+                //nothing
+                break;
+            }
+        }
+
+
+
+
+
+
+        previous = helper -> file;
         insert(command, helper);
         int index = helper->index;
         free(helper);
+        
+        switch(buffer[index]) {
+            case '>' : { //redirect previous output to the next filename that appears
+                redirect = output;
+                index++;
+                break;
+            }
+            case '<' : { //redirect input to next filename as the previous file
+                redirect = input;
+                index++;
+                break;
+            }
+            case '|' : { //pipe two programs; previous output goes to next input
+                redirect = pipe;
+                index++;
+                break;
+            }
+        }
+
         helper = tokenizeFile(buffer, size, index);
     }
 
     traverse_command(command);
 
-    return NULL;
+    return command;
 }
