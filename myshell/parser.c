@@ -100,6 +100,21 @@ struct token_helper {
 };
 
 /**
+ * @brief A struct / object that contains wildcard components. In particular, the number of files which match the wildcard definition, as well as all of those components (files).
+ * 
+ */
+struct wildcard_components {
+    /**
+     * @brief The wildcard files that match the given wildcard.
+     */
+    char ** wildcards;
+    /**
+     * @brief The number of wildcards components.
+     */
+    int size;
+};
+
+/**
  * @brief Creates a new struct command.
  * 
  * @return struct command* 
@@ -177,6 +192,21 @@ void traverse_command(struct command * command) {
     }
 }
 
+/**
+ * @brief Determines the wildcard string located at buffer[index], and returns it. Note that buffer[index] must be the '*' character.
+ * 
+ * @param buffer 
+ * @param size 
+ * @param index 
+ * @return char* 
+ */
+char * wildcard_f(char * buffer, size_t size, int index) {
+    if(buffer[index] == '*') {
+        char * s = malloc(size * sizeof(char));
+
+    }
+    return NULL; //invalid
+}
 /**
  * @brief Tokenizes a file from the buffer starting at the given index. Returns a token_helper struct which contains the file that was toknized as well as the index to next be parsed.
  * 
@@ -263,6 +293,23 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                 // free(word);
                 // return NULL; //args_index == 0; something weird happened.
             }
+            case '*' : { //wildcard case
+                char * wildcard = determine_wildcard(buffer, size, index);
+                struct wildcard_components * wildcard_components = valid_wildcards(wildcard);
+                //add all of the wildcard componenets as arguments to the current file
+                
+                for(int i = 0; i<wildcard_components->size; i++) {
+                    args[args_index] = wildcard_components ->wildcards[i];
+                    args_index++;
+                }
+                
+                //reset
+                index = next_space(buffer, size, index); //index goes to the next space character, as we do not want to parse the wildcard any further.
+
+                word_index = 0; //we can overwrite word as we don't use it as a filename
+
+                break;
+            }   
             default : {
                 word[word_index] = c;
                 word_index++;
