@@ -3,6 +3,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define FALSE 0
 #define TRUE 1
@@ -47,18 +48,43 @@ struct command {
  * 
  */
 struct file {
+
     /**
-     * @brief The name of the file
+     * @brief The name of this file.
      */
     char * name;
     /**
-     * @brief The redirected output of this file
+     * @brief The arguments to the file.
+     */
+    char ** args;
+    /**
+     * @brief The number of arguments to the file.
+     */
+    int size;
+    /**
+     * @brief The redirected output of this file. NULL indicates STDOUT
      */
     char * output;
     /**
-     * @brief The redirected input of this file
+     * @brief The redirected input of this file. NULL indicates STDIN
      */
     char * input;
+};
+/**
+ * @brief This struct is used to assist with tokenizing files. When tokenizing, this struct gives important information that is useful for the parser.
+ * 
+ */
+struct token_helper {
+    /**
+     * @brief File which was tokenized
+     * 
+     */
+    struct file * file;
+    /**
+     * @brief The next index to begin parsing.
+     * 
+     */
+    int index;
 };
 
 /**
@@ -73,25 +99,27 @@ struct command * new_command_struct() {
     return c;
 }
 
+void free_file_struct(struct file * file) {
+    for(int i = 0; i<file->size; i++) {
+        free(file->args[i]);
+    }
+    if(file -> input != NULL) {
+        free(file -> input);
+    }
+    if(file -> output != NULL) {
+        free(file -> output);
+    }
+    //file -> name is same as file -> args[0] by definition; no need to free it
+    free(file->args);
+    free(file);
+}
+
 void free_struct_command(struct command * c) {
     for(int i = 0; i<c->size; i++) {
-        free(c -> files[i]);
+        free_file_struct(c -> files[i]);
     }
     free(c->files);
     free(c);
-}
-
-/**
- * @brief Tokenizes the buffer into the command struct. 
- * 
- * @param buffer 
- * @param size 
- * @param command 
- */
-void tokenize(char * buffer, size_t size, struct command * command) {
-    for(int i = 0; i<size; i++) {
-
-    }
 }
 
 /**
@@ -115,66 +143,137 @@ void insert(char * filename, struct command * command, char * I_RDIR, char * O_R
     (command -> size)++;                          //incremenet the size of files within command
 }
 
-/**
- * @brief Obtains and returns the previous file specified within buffer which is less than i.
- * 
- * If the previous token is not a valid file, this method returns null.
- * 
- * @param buffer 
- * @param i 
- * @return char* 
- */
-char * previous(char * buffer, int i, size_t size) {
-    char * file = malloc(size * sizeof(char));
-    //March backwards from buffer[i] and continuously append each character into file
-    //Once you reach a whitepsace, you are done tokenizing that particular file.
+void free_token_helper(struct token_helper * helper) {
+    free_file_struct(helper -> file);
+    free(helper);
 }
 
 /**
- * @brief Obtains and returns the next file specified within the buffer, which is strictly larger than i and less than size.
- * 
- * If a file is not valid within those parameters, this function returnsn null.
+ * @brief Tokenizes a file from the buffer starting at the given index. Returns a token_helper struct which contains the file that was toknized as well as the index to next be parsed..
  * 
  * @param buffer 
- * @param i 
  * @param size 
- * @return char* 
+ * @param index 
+ * @return struct token_helper * 
  */
-char * next(char * buffer, int i, size_t size) {
-    //March forwards from buffer[i+1], continously appending each charater seen into a string. Once you reach whitespace, you are done.
-    i++; //We want the next element starting at i+1
-    char * file = malloc((size-i) * sizeof(char));
-    int file_index = 0;
-    while(i < size) {
-        char c = buffer[i];
+struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
+    printf("Tokenizing a file from buffer starting at index %d\n", index);
+    
+    struct token_helper * helper = malloc(sizeof(struct token_helper));
+    struct file * file = malloc(sizeof(struct file));
+    helper -> file = file;
+    
+
+    char ** args = malloc(size * sizeof(char *));
+
+    int args_index = 0;
+    
+    char * word = malloc(size * sizeof(char));
+    int word_index = 0;
+    
+    while(index < size) {
+        char c = buffer[index];
         switch(c) {
             case ' ' : {
-                file[file_index] = '\0';
-                return file;
-            }
-            case '>' : {
-                file[file_index] = '\0';
-                return file;
+                //Insert the parsed word/argument into the list of arguments
+                word[word_index] = '\0';
+                word = realloc(word, word_index+1); //we now know the exact length
+                args[args_index] = word; 
+                printf("Parsed a token : '%s'\n", word);
+                //Reset
+                word_index = 0;
+                word = malloc(size * sizeof(char));
+                args_index++;
+
+                break;
             }
             case '<' : {
-                file[file_index] = '\0';
-                return file;
+                //finished parsing a file
+                if(args_index > 0) {
+                    file -> args = args;
+                    file -> size = args_index;
+                    file -> name = args[0];
+                    helper -> index = index;
+                    return helper;
+                }
+                free_token_helper(helper);
+                free(args);
+                free(word);
+                return NULL; //args_index == 0; something weird happened.
+            }
+            case '>' : {
+                //finished parsing a file
+                if(args_index > 0) {
+                    file -> args = args;
+                    file -> size = args_index;
+                    file -> name = args[0];
+                    helper -> index = index;
+                    return helper;
+                }
+                free_token_helper(helper);
+                free(args);
+                free(word);
+                return NULL; //args_index == 0; something weird happened.
             }
             case '|' : {
-                file[file_index] = '\0';
-                return file;
+                //finished parsing a file
+                if(args_index > 0) {
+                    file -> args = args;
+                    file -> size = args_index;
+                    file -> name = args[0];
+                    helper -> index = index;
+                    return helper;
+                }
+                free_token_helper(helper);
+                free(args);
+                free(word);
+                return NULL; //args_index == 0; something weird happened.
             }
             default : {
-                file[file_index] = c;
-                file_index++;
+                word[word_index] = c;
+                word_index++;
             }
         }
+        index++;
     }
 
-    return NULL; //invalid (or maybe not?)
+    printf("Finished moving through the buffer. Args index is %d and word index is %d\n", args_index, word_index);
 
+    if(word_index > 0) { //Edge case where the last token is end of line.
 
-}   
+        //Insert the parsed word/argument into the list of arguments
+        word[word_index] = '\0';
+        word = realloc(word, word_index+1); //we now know the exact length
+        args[args_index] = word; 
+        printf("Parsed a token : '%s'\n", word);
+        args_index++;
+
+        file -> args = args;
+        file -> size = args_index;
+        file -> name = args[0];
+        helper -> index = index;
+    }
+    //Finished parsing
+    if(args_index == 0) {
+        //no arguments; something weird happened
+        printf("Args_index is 0\n");
+        free_token_helper(helper);
+        free(args);
+        free(word);
+        return NULL;;
+    }
+    
+    return helper;
+
+}  
+
+void traverseFile(struct file * file) {
+    printf("------------\n");
+    for(int i = 0; i<file -> size; i++) {
+        printf("'%s'\n", file -> args[i]);
+    }
+    printf("------------\n");   
+}
 /**
  * @brief Parses the command-line, given in buffer (which contains size number of bytes).
  * 
@@ -188,37 +287,12 @@ struct command * parse(char * buffer, size_t size) {
     
     struct command * command = new_command_struct();
     
-    char * s = malloc(size * sizeof(char));
+    struct token_helper * helper = tokenizeFile(buffer, size, 0);
 
-    int s_index = 0;
-
-    char * I_RDIR = NULL; //Input redirection
-    char * O_RDIR = NULL; //Output redirection
-
-    for(int i = 0; i<size; i++) {
-        char c = buffer[i];
-        switch(c) {
-            case ' ' : { //white space separates files
-                s[s_index] = '\0';
-                insert(s, command, I_RDIR, O_RDIR);
-                I_RDIR = NULL;
-                O_RDIR = NULL;
-                s = malloc(size * sizeof(char));
-                s_index = 0;
-                break;
-            }
-            case '<' : { //Input redirection
-                I_RDIR = previous(buffer, i, size);
-                break;
-            }
-            case '>' : { //Output redirection
-                O_RDIR = next(buffer, i, size);
-                break;
-            }
-            default : {
-                s[s_index] = c;
-                s_index++;
-            }
-        }
+    if(helper != NULL) {
+    traverseFile(helper -> file);
+    free_token_helper(helper);
     }
+
+    return NULL;
 }
