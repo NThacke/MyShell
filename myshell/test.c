@@ -28,7 +28,7 @@ void test0() {
 }
 
 void test1() {
-    char * buffer = "bar < baz";
+    char * buffer = "foo | bar > baz";
     size_t length = size(buffer);
     char cwd [PATH_MAX];
     getcwd(cwd, sizeof(cwd));
@@ -38,7 +38,22 @@ void test1() {
 
     traverse_command(command);
 }
+/**
+ * @brief Tests overriding pipe functionality.
+ * 
+ * "foo | bar < baz" 
+ * 
+ * Denotes that foo pipes into bar, but that bar has its input from baz. 
+ */
+void test_override() {
+    char * buffer = "foo | bar < baz";
+    size_t length = size(buffer);
+    char cwd [PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+
+    struct command * command = parse(cwd, buffer, length); //no need to free.. (causes double free)... why?
+}
 int main(void) {
 
-    test1();
+    test_override();
 }
