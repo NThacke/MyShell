@@ -107,54 +107,58 @@ void traverseFile(struct file * file) {
 }
 
 void free_file_struct(struct file * file) {
-    printf("Freeing file struct with size of %d\n", file -> size);
-    traverseFile(file);
-    for(int i = 0; i<file->size; i++) {
-        free(file->args[i]);
+    if(file != NULL) {
+        for(int i = 0; i<file->size; i++) {
+            free(file->args[i]);
+        }
+        if(file -> input != NULL) {
+            free(file -> input);
+        }
+        if(file -> output != NULL) {
+            free(file -> output);
+        }
+        //file -> name is same as file -> args[0] by definition; no need to free it
+        free(file->args);
+        free(file);
     }
-    if(file -> input != NULL) {
-        free(file -> input);
-    }
-    if(file -> output != NULL) {
-        free(file -> output);
-    }
-    //file -> name is same as file -> args[0] by definition; no need to free it
-    free(file->args);
-    free(file);
 }
 
 void free_struct_command(struct command * c) {
-    for(int i = 0; i<c->size; i++) {
-        free_file_struct(c -> files[i]);
+    if(c != NULL) {
+        for(int i = 0; i<c->size; i++) {
+            free_file_struct(c -> files[i]);
+        }
+        free(c->files);
+        free(c);
     }
-    free(c->files);
-    free(c);
 }
 
-/**
- * @brief Inserts the given filename into the command struct.
- * If I_RDIR is NON-NULL, then the file is meant to have input redirection from I_RDIR
- * If O_RDIR is NON-NULL, then the file is meant to have output redirection to be to O_RDIR
- * 
- * @param filename 
- * @param command 
- * @param I_RDIR 
- * @param O_RDIR 
- */
-void insert(char * filename, struct command * command, char * I_RDIR, char * O_RDIR) {
+// /**
+//  * @brief Inserts the given filename into the command struct.
+//  * If I_RDIR is NON-NULL, then the file is meant to have input redirection from I_RDIR
+//  * If O_RDIR is NON-NULL, then the file is meant to have output redirection to be to O_RDIR
+//  * 
+//  * @param filename 
+//  * @param command 
+//  * @param I_RDIR 
+//  * @param O_RDIR 
+//  */
+// void insert(char * filename, struct command * command, char * I_RDIR, char * O_RDIR) {
 
-    struct file * my_file = malloc(sizeof(struct file));
-    my_file -> name = filename;
-    my_file -> input = I_RDIR;
-    my_file -> output = O_RDIR;
+//     struct file * my_file = malloc(sizeof(struct file));
+//     my_file -> name = filename;
+//     my_file -> input = I_RDIR;
+//     my_file -> output = O_RDIR;
 
-    command -> files [command -> size] = my_file; //insert the file into the command
-    (command -> size)++;                          //incremenet the size of files within command
-}
+//     command -> files [command -> size] = my_file; //insert the file into the command
+//     (command -> size)++;                          //incremenet the size of files within command
+// }
 
 void free_token_helper(struct token_helper * helper) {
-    free_file_struct(helper -> file);
-    free(helper);
+    if(helper != NULL) {
+        free_file_struct(helper -> file);
+        free(helper);
+    }
 }
 
 /**
@@ -171,8 +175,14 @@ struct file * new_file_struct() {
     return file;
 }
 
+void traverse_command(struct command * command) {
+    for(int i = 0; i<command -> size; i++) {
+        traverseFile(command -> files[i]);
+    }
+}
+
 /**
- * @brief Tokenizes a file from the buffer starting at the given index. Returns a token_helper struct which contains the file that was toknized as well as the index to next be parsed..
+ * @brief Tokenizes a file from the buffer starting at the given index. Returns a token_helper struct which contains the file that was toknized as well as the index to next be parsed.
  * 
  * @param buffer 
  * @param size 
@@ -181,7 +191,8 @@ struct file * new_file_struct() {
  */
 struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
     printf("Tokenizing a file from buffer starting at index %d\n", index);
-    
+    printf("Character at index %d is '%c'\n", index, buffer[index]);
+
     struct token_helper * helper = malloc(sizeof(struct token_helper));
     struct file * file = new_file_struct();
     helper -> file = file;
@@ -219,10 +230,10 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     helper -> index = index;
                     return helper;
                 }
-                free_token_helper(helper);
-                free(args);
-                free(word);
-                return NULL; //args_index == 0; something weird happened.
+                // free_token_helper(helper);
+                // free(args);
+                // free(word);
+                // return NULL; //args_index == 0; something weird happened.
             }
             case '>' : {
                 //finished parsing a file
@@ -233,10 +244,10 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     helper -> index = index;
                     return helper;
                 }
-                free_token_helper(helper);
-                free(args);
-                free(word);
-                return NULL; //args_index == 0; something weird happened.
+                // free_token_helper(helper);
+                // free(args);
+                // free(word);
+                // return NULL; //args_index == 0; something weird happened.
             }
             case '|' : {
                 //finished parsing a file
@@ -247,10 +258,10 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     helper -> index = index;
                     return helper;
                 }
-                free_token_helper(helper);
-                free(args);
-                free(word);
-                return NULL; //args_index == 0; something weird happened.
+                // free_token_helper(helper);
+                // free(args);
+                // free(word);
+                // return NULL; //args_index == 0; something weird happened.
             }
             default : {
                 word[word_index] = c;
@@ -289,6 +300,22 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
     return helper;
 
 }  
+/**
+ * @brief Inserts the file contained within helper into the command.
+ * 
+ * @param command 
+ * @param helper 
+ */
+void insert(struct command * command, struct token_helper * helper) {
+    printf("Inserting a new file into command\n");
+    printf("Command currently has size %d \n", command->size);
+    traverse_command(command);
+
+    command -> files = realloc(command -> files, (command->size + 1) * sizeof(struct file *));
+
+    command -> files[command -> size] = helper -> file;
+    command -> size ++;
+}
 
 /**
  * @brief Parses the command-line, given in buffer (which contains size number of bytes).
@@ -305,10 +332,14 @@ struct command * parse(char * buffer, size_t size) {
     
     struct token_helper * helper = tokenizeFile(buffer, size, 0);
 
-    if(helper != NULL) {
-        traverseFile(helper -> file);
-        free_token_helper(helper);
+    while(helper != NULL) {
+        insert(command, helper);
+        int index = helper->index;
+        free(helper);
+        helper = tokenizeFile(buffer, size, index);
     }
+
+    traverse_command(command);
 
     return NULL;
 }
