@@ -369,6 +369,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
     if(args_index == 0) {
         //no arguments; something weird happened
         printf("Args_index is 0\n");
+        free_file_struct(helper -> file);
         free_token_helper(helper);
         free(args);
         free(word);
