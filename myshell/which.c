@@ -110,10 +110,14 @@ void which(char * input) {
     if(program_name != NULL) {
         // printf("Program name is '%s'\n", program_name);
 
+        if(strcmp(program_name, "cd") == 0 || strcmp(program_name, "pwd") == 0 || strcmp(program_name, "which") == 0) {
+            return;
+        }
+
         //Now we look for the program name.
         char * path = program_path(program_name);
         if(path == NULL) {
-            printf("'%s' was not found.\n", program_name);
+            // printf("'%s' was not found.\n", program_name);
         }
         else {
             printf("%s\n", path);
@@ -122,6 +126,6 @@ void which(char * input) {
         free(program_name);
     }
     else {
-        printf("Invalid program name given to 'which' command.\n");
+        // printf("Invalid program name given to 'which' command.\n");
     }
 }
