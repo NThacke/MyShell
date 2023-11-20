@@ -97,12 +97,19 @@ char * program_path(char * program) {
     return path;
 
 }
+
+/**
+ * @brief 
+ * Have built-ins return a struct command, which can then be sent to the executioner program (which will execute the command).
+ * 
+ */
+
 /**
  * @brief Determines and prints the absolute path to a built-in program name (of the likes of cat, ls, rm; i.e, UNIX standard programs). If the given program is not found, an error message displays as such. If the given command is invalid, this program displays as such.
  * 
  * @param input 
  */
-void which(char * input) {
+void which(char * input, char * output) {
     // Stub
     //We have guaranteed outselves that the beginning of input is indeed 'which '.
     //Now we must find the program that follows it.
