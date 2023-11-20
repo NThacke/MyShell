@@ -70,6 +70,9 @@ int main(int argc, char *argv[]){
 
             // Check for builtin commands
 
+            if ( strcmp("exit", user_input) == 0 || regex_val == 0) {
+                break;
+            }
             //pwd
             if ( strcmp("pwd", user_input) == 0 || regex_val == 0) {
                 // detect command
@@ -118,4 +121,5 @@ int main(int argc, char *argv[]){
             printf("mysh> ");
         }
    }
+    return 0;
 }
