@@ -7,6 +7,7 @@
 #include <regex.h>
 #include <dirent.h>
 #include "which.h"
+#include "executioner.h"
 
 #define TRUE 0
 #define FALSE 1
@@ -47,74 +48,19 @@ int main(int argc, char *argv[]){
         // First command is free
         printf("mysh> ");
 
+        char cwd[PATH_MAX];
+
         while (fgets(user_input, 1000, stdin) != NULL) {
 
             
             // strip newline from command
             user_input[strcspn(user_input, "\n")] = 0;
+            getcwd(cwd, sizeof(cwd));
+            
+            struct command * command = parse(cwd, user_input, 5120);
+            execute(command);
+            free(command);
 
-            // Check for cd.*$
-
-            regex_t regex;
-            int regex_val;
-
-            /* Compile regular expression */
-            regex_val = regcomp(&regex, "^cd.*", 0);
-
-            // check
-            if (regex_val) {
-                fprintf(stderr, "Could not compile regex\n");
-            }
-
-            regex_val = regexec(&regex, user_input, 0, NULL, 0);
-
-            // Check for builtin commands
-
-            if ( strcmp("exit", user_input) == 0 || regex_val == 0) {
-                break;
-            }
-            //pwd
-            if ( strcmp("pwd", user_input) == 0 || regex_val == 0) {
-                // detect command
-                int builtin_to_run;
-                // run pwd
-                if ( strcmp("pwd", user_input) == 0 ){
-                    pwd_builtin();
-                }
-                // run cd
-                if ( regex_val == 0 ) {
-
-                    // We have reached a cd function. we need to conduct a few checks
-                    // create a copy of user input
-                    char throwaway_input[5120];
-                    strncpy(throwaway_input, user_input, 5120);
-
-                    // Now set counter
-                    int num_tokens = 0;
-
-                    // Set token
-                    char* token = strtok(throwaway_input, " ");
-                    while (token != NULL) {
-                        num_tokens++;
-                        token = strtok(NULL, " ");
-                    }
-
-                    if (num_tokens == 2) {
-                        // Now we tokenize until we get the last token
-                        char *directory = strrchr(user_input, ' ');
-                        // get last token
-                        directory = directory +1;
-                        cd_builtin(directory);
-                    }
-                }
-            }
-            else if(valid_which(user_input)) {
-                //Guarantee ourselves that input is indeed 'which ' at the beginning
-                which(user_input);
-            }
-            else {
-                printf("command initiated: %s\n", user_input);
-            }
             memset(user_input, 0, sizeof user_input);
 
             // Set up next iteration
