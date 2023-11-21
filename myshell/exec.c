@@ -85,39 +85,38 @@ int execute(struct command * command) {
     printf("Execute\n");
     for(int i = 0; i<command -> size; i++) {
         
-        pid_t pid;
-        int status;
-
-        pid = fork();
-
-        if(pid == -1) {
-            perror("fork failed");
-            exit(EXIT_FAILURE);
+        struct file * current_file = command -> files[i];
+        if(built_in(current_file) == 0) {
+            printf("Built-in command recognized : '%s'\n", current_file -> name);
+            int value = execute_built_in(current_file);
+            if(value == EXIT_FAILURE || value == EXIT_SUCCESS) { //execute built in recognizes exit call; if so, exit the program completely.
+                return value;
+            }
         }
-        else if(pid == 0) { //We are in child process
+        else { //not built-in, create a new process to execute.
+            pid_t pid;
+            int status;
+
+            pid = fork();
+
+            if(pid == -1) {
+                perror("fork failed");
+                exit(EXIT_FAILURE);
+            }
+            else if(pid == 0) { //We are in child process
 
             printf("In child process\n");
 
-            struct file * current_file = command -> files[i];
-            if(built_in(current_file) == 0) {
-                printf("Built-in command recognized : '%s'\n", current_file -> name);
-                int value = execute_built_in(current_file);
-                if(value == EXIT_FAILURE || value == EXIT_SUCCESS) { //execute built in recognizes exit call; if so, exit the program completely.
-                    return value;
-                }
+            int inputFile = input_file_descriptor(current_file);
+            if(inputFile == -1) {
+                perror("open input file");
+                exit(EXIT_FAILURE);
             }
-            else { //not built in
-
-                int inputFile = input_file_descriptor(current_file);
-                if(inputFile == -1) {
-                    perror("open input file");
-                    exit(EXIT_FAILURE);
-                }
-                int outputFile = output_file_descriptor(current_file);
-                if(outputFile == -1) {
-                    perror("open output file");
-                    exit(EXIT_FAILURE);
-                }
+            int outputFile = output_file_descriptor(current_file);
+            if(outputFile == -1) {
+                perror("open output file");
+                exit(EXIT_FAILURE);
+            }
 
                 printf("{Filename : '%s' | Input FD : '%d' | Output FD : '%d'}\n", current_file -> name, inputFile, outputFile);
 
@@ -149,15 +148,12 @@ int execute(struct command * command) {
                 free(args);
                 close(inputFile);
                 close(outputFile);
-            }
         }
         else {
              // Parent process
             waitpid(pid, &status, 0); // Wait for the child to finish
         }
     }
-
+    }
     return -1;
-
-
 }
