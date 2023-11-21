@@ -42,3 +42,5 @@ void free_struct_command(struct command * c);
 struct command * parse(char * current_dir, char * buffer, size_t size);
 
 void traverse_command(struct command * command);
+
+void clean(struct command * command);
