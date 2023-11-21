@@ -59,11 +59,13 @@ int main(int argc, char *argv[]){
             
             struct command * command = parse(cwd, user_input, 5120);
             // execute(command);
-            free(command);
 
             memset(user_input, 0, sizeof user_input);
 
+            // test executioner
+            execute_command(command);
             // Set up next iteration
+            free(command);
             printf("mysh> ");
         }
    }
