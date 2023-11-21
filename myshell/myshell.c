@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
             getcwd(cwd, sizeof(cwd));
             
             struct command * command = parse(cwd, user_input, 5120);
-            execute(command);
+            // execute(command);
             free(command);
 
             memset(user_input, 0, sizeof user_input);
