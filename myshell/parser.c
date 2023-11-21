@@ -261,7 +261,7 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
     char * word = malloc(size * sizeof(char));
     int word_index = 0;
     
-    while(index < size) {
+    while(buffer[index] != '\0') {
         char c = buffer[index];
         switch(c) {
             case ' ' : {
@@ -281,6 +281,16 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
             case '<' : {
                 //finished parsing a file
                 if(args_index > 0) {
+
+                    word[word_index] = '\0';
+                    word = realloc(word, word_index+1); //we now know the exact length
+                    args[args_index] = word; 
+                    printf("Parsed a token : '%s'\n", word);
+                    //Reset
+                    word_index = 0;
+                    word = malloc(size * sizeof(char));
+                    args_index++;
+
                     file -> args = args;
                     file -> size = args_index;
                     file -> name = args[0];
@@ -288,14 +298,19 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     return helper;
                 }
                 break;
-                // free_token_helper(helper);
-                // free(args);
-                // free(word);
-                // return NULL; //args_index == 0; something weird happened.
             }
             case '>' : {
                 //finished parsing a file
                 if(args_index > 0) {
+                    word[word_index] = '\0';
+                    word = realloc(word, word_index+1); //we now know the exact length
+                    args[args_index] = word; 
+                    printf("Parsed a token : '%s'\n", word);
+                    //Reset
+                    word_index = 0;
+                    word = malloc(size * sizeof(char));
+                    args_index++;
+
                     file -> args = args;
                     file -> size = args_index;
                     file -> name = args[0];
@@ -303,14 +318,19 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     return helper;
                 }
                 break;
-                // free_token_helper(helper);
-                // free(args);
-                // free(word);
-                // return NULL; //args_index == 0; something weird happened.
             }
             case '|' : {
                 //finished parsing a file
                 if(args_index > 0) {
+                    word[word_index] = '\0';
+                    word = realloc(word, word_index+1); //we now know the exact length
+                    args[args_index] = word; 
+                    printf("Parsed a token : '%s'\n", word);
+                    //Reset
+                    word_index = 0;
+                    word = malloc(size * sizeof(char));
+                    args_index++;
+                    
                     file -> args = args;
                     file -> size = args_index;
                     file -> name = args[0];
@@ -318,10 +338,6 @@ struct token_helper * tokenizeFile(char * buffer, size_t size, int index) {
                     return helper;
                 }
                 break;
-                // free_token_helper(helper);
-                // free(args);
-                // free(word);
-                // return NULL; //args_index == 0; something weird happened.
             }
             case '*' : { //wildcard case
                 char * wildcard = determine_wildcard(buffer, size, index);
