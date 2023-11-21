@@ -58,13 +58,24 @@ int main(int argc, char *argv[]){
             getcwd(cwd, sizeof(cwd));
             
             struct command * command = parse(cwd, user_input, 5120);
-            execute(command);
-            free(command);
+            
+            clean(command);
 
-            memset(user_input, 0, sizeof user_input);
+            traverse_command(command);
 
-            // Set up next iteration
-            printf("mysh> ");
+            int value = execute(command);
+            if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
+                printf("Exiting...\n");
+                free(command);
+                return EXIT_SUCCESS;
+            }
+            else {
+                free(command);
+
+                memset(user_input, 0, sizeof user_input);
+                // Set up next iteration
+                printf("mysh> ");
+            }
         }
    }
     return 0;
