@@ -67,7 +67,7 @@ int main(int argc, char *argv[]){
             if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
                 printf("Exiting...\n");
                 free(command);
-                return EXIT_SUCCESS;
+                exit(EXIT_SUCCESS);
             }
             else {
                 free(command);
