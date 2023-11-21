@@ -1,1 +1,1 @@
-void execute(struct command * command);
+int execute(struct command * command);
