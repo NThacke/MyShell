@@ -27,8 +27,33 @@ If wildcards do not work when the functions are implemented, we may need to reth
 
 (2) Executive Program
 
-  This program is the exector of programs, and is the second largest component of the project (behind the parser). Not much theory has been developed for this yet, and needs to be thought out before work can be done.
-  This program invokes fork(), dup2(), and other similar system calls that actually execute programs and processes.
+Redirection for one program works correctly; e.g. is as follows
+
+input.txt > foo > output.txt
+
+program foo will successfully have its input be from input.txt, and send its output to output.txt
+
+Piping without redirection works correct; e.g. is as follows
+
+example | foo
+
+program "example" correctly sends its output to program "foo"
+
+Piping with redirection does not work correctly; e.g. is as follows
+
+input.txt > middle_man | foo
+
+This results in relatively bizarre behavior. Try it and see!
+
+input.txt > middle_man | foo > output.txt
+
+Similar behavior as above, output.txt gets populated with junk / bizarre text.
+
+example | foo > output.txt
+
+output.txt does not receive any information.
+
+What to do? Fix the file redirection when piping. Singular program works as expected, and handles input/output redirection.
 
 
 
