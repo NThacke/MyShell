@@ -49,28 +49,6 @@ int execute_built_in(struct file * file) {
     }
     return -1;
 }
-int input_file_descriptor(struct file * file) {
-    if(file -> input == NULL) {
-        return 0; //STDIN is designated as 0
-    }
-    else {
-
-        int value = open(file->input, O_RDONLY);
-        printf("The file desciptor for '%s' is '%d'\n", file -> input, value);
-        return value;
-    }
-}
-
-int output_file_descriptor(struct file * file) {
-    if(file -> output == NULL) {
-        return 1;
-    }
-    else {
-        int value = open(file -> output, O_WRONLY);
-        printf("The file desciptor for '%s' is '%d'\n", file -> output, value);
-        return value;
-    }
-}
 
 char ** get_args(struct file * file) {
     char ** args = malloc( (file->size+1) * sizeof(char *));
@@ -79,35 +57,6 @@ char ** get_args(struct file * file) {
     }
     args[file->size] = NULL;
     return args;
-}
-
-/**
- * @brief Determines whether the file at (command->files[index]) is a pipe into another file. If so, this method returns 0 (TRUE), otherwise, returns 1 (FALSE).
- * 
- * @param command 
- * @param index 
- * @return int 
- */
-int piping(struct command * command, int index) {
-    //A pipe occurrs when one file's output is the next file's input.
-    if(index < command -> size - 1) {
-
-        struct file * current_file = command->files[index];
-        struct file * next_file = command->files[index+1];
-        printf("Determing if '%s' pipes into '%s'\n", current_file -> name, next_file -> name);
-
-        char * output = current_file -> output;
-        char * input = next_file -> input;
-
-        printf("Output : '%s' | Input : '%s'\n", output, input);
-
-        if(strcmp(output, next_file -> name) == 0 && strcmp(input, current_file->name) == 0 && access(current_file -> name, X_OK) != -1 && access(next_file -> name, X_OK) != -1) {
-            //both current_file and next_file are executables (as determined by access()) furthermore, they both have the same input/output. Therefore, they must be two programs which have a pipe between them.
-            return TRUE;
-        }
-    }
-    return FALSE;
-
 }
 
 /**
@@ -239,96 +188,108 @@ void exec_pipe(struct file * file1, struct file * file2) {
         waitpid(pid, &status, 0);
     }
 }
+void execute_file(struct file * file) {
+    //Redirect STDIN if file has an intput other than STDIN.
+    int fd_in = STDIN_FILENO;
+    if(file -> input != NULL) {
+        fd_in = open(file -> output, O_RDONLY);
+        if(fd_in < 0) {
+            perror("Could not open output file");
+            return;
+        }
+        dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
+    }
 
-void execute_child(struct command * command, int index) {
-    
-    struct file * current_file = command -> files[index];
+    //Redirect STDOUT if file has an output other than STDOUT.
+    int fd_out = STDOUT_FILENO;
+    if(file -> output != NULL) {
+        fd_out = open(file -> output, O_WRONLY);
+        if(fd_out < 0) {
+            perror("Could not open output file");
+            return;
+        }
+        dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
+    }
+
+    char ** args = get_args(file); //change this !! Args will be malloced and must be freed, but execv never returns (so we can't ever free it). Solution : Reference file -> args as the paramter to exeecv. This means we must have file -> args have a NULL paramtere at the tail end. This can be done inside clean() within the parser file.
+    execv(file -> name, args);
+}
+void exec_file(struct file * file) {
     pid_t pid;
     int status;
 
     pid = fork();
-
-    if(pid == -1) {
-        perror("fork failed");
-        exit(EXIT_FAILURE);
+    if(pid < 0) {
+        perror("Fork failed");
     }
-    else if(pid == 0) { //We are in child process
+    else if(pid == 0) { //Child process for executing a program. Execv does not return, so we must create a process which can be consumed by the aether.
+        execute_file(file);
+    }
+    else { //parent process
+        waitpid(pid, &status, 0);
+    }
+}
+/**
+ * @brief This function determines which indecies of the given command refer to a file which is indeed a program, and returns it.
+ * 
+ * e.g.
+ * 
+ * int * arr = determine_program_indecies(command);
+ * arr[0] //the first program
+ * arr[1] //the second program
+ * 
+ * @param command 
+ * @return int *  -- guaranteed to be of length 2. 
+ */
+int * deteremine_program_indecies(struct command * command) {
+    int * arr = malloc(2 * sizeof(int));
+    arr[0] = -1;
+    arr[1] = -1;
 
-        printf("In child process\n");
+    int index = 0;
 
-        int inputFile = input_file_descriptor(current_file);
-        if(inputFile == -1) {
-        perror("open input file");
-        exit(EXIT_FAILURE);
+    for(int i = 0; i<command -> size; i++) {
+        struct file * file = command -> files[i];
+        if(access(file -> name, X_OK) == TRUE) {
+            //the file is executable, and is thus a program
+            arr[index] = i;
+            index++;
+            printf("A executable program is '%s'\n", file -> name);
         }
-        int outputFile = output_file_descriptor(current_file);
-        if(outputFile == -1) {
-            perror("open output file");
-            exit(EXIT_FAILURE);
-        }
-
-
-
-        printf("{Filename : '%s' | Input FD : '%d' | Output FD : '%d'}\n", current_file -> name, inputFile, outputFile);
-
-        //We now have the input/output file descriptors for the current file.
-        if(dup2(inputFile, 0) == -1) {
-            perror("dup2 input");
-            exit(EXIT_FAILURE);
-        }
-        // close(inputFile);
-
-
-        if(dup2(outputFile, 1) == -1) {
-            perror("dup2 output");
-            exit(EXIT_FAILURE);
-        }
-        // close(outputFile);
-
-        char ** args = get_args(current_file);
-
-        printf("Invoking execv\n");
-        if(execv(current_file -> name, args) == -1) {
-            perror("execv error");
-            free(args);
-            close(inputFile);
-            close(outputFile);
-            exit(EXIT_FAILURE);
-        }
-
-        free(args);
-        close(inputFile);
-        close(outputFile);
-
-        }
-        else {
-            // Parent process
-            waitpid(pid, &status, 0); // Wait for the child to finish
-        }
+    }
+    return arr;
 }
 int execute(struct command * command) {
     
     printf("Execute\n");
-    for(int i = 0; i<command -> size; i++) {
-        struct file * current_file = command -> files[i];
-        if(built_in(current_file) == 0) {
-            printf("Built-in command recognized : '%s'\n", current_file -> name);
-            int value = execute_built_in(current_file);
-            if(value == EXIT_FAILURE || value == EXIT_SUCCESS) { //execute built in recognizes exit call; if so, exit the program completely.
-                return value;
-            }
-        }
-        else { //not built-in, create a new process to execute.
-            if(piping(command, i) == TRUE) { //We are piping the current file into the next file; we must create two processes. This is different from redirection in this regard.
-                printf("Recognized a pipe!\n");
-                exec_pipe(command -> files[i], command -> files[i+1]); //not general !! please fix me !!
-                i++; //we don't execute the next command, since it's a pipe
-            }
-            else {
-                execute_child(command, i); //a better function name would be suitable; we are not executing children here.
+
+    int * arr = deteremine_program_indecies(command);
+    if(arr[0] >= 0) {
+        printf("The first program index is '%d' and is the program '%s'\n", arr[0], command -> files[arr[0]] -> name);
+    }
+    if(arr[1] >= 0) {
+        printf("The second program index is '%d' and is the program '%s'\n", arr[1], command -> files[arr[1]] -> name);
+    }
+
+    if(arr[0] >= 0 && arr[1] >= 0) { //two programs, we are piping!
+        struct file * file1 = command -> files[arr[0]];
+        struct file * file2 = command -> files[arr[1]];
+        exec_pipe(file1, file2);
+    }
+    else if(arr[0] >= 0) { //one executable program
+        struct file * file1 = command -> files[arr[0]];
+        exec_file(file1);
+    }
+    else {
+        //no executable program
+        if(command -> size > 0) {
+            struct file * file = command -> files[0];
+            if(strcmp(file -> name, "exit") == 0) {
+                return EXIT_SUCCESS;
             }
         }
     }
     printf("Exiting execute()...\n");
+    free(arr);
     return -1;
 }
