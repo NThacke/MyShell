@@ -124,6 +124,9 @@ void execute_pipe(struct file * file1, struct file * file2) {
 
     if(pid == 0) {
         //Redirect STDIN to the read end of the pipe. file2 is reading from file1.
+
+        close(pipefd[1]); // Close unused write end of the pipe
+
         dup2(pipefd[0], STDIN_FILENO);
         
         //Redirect STDOUT if file2 has an output other than STDOUT.
@@ -136,6 +139,7 @@ void execute_pipe(struct file * file1, struct file * file2) {
                 return;
             }
             dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
+            close(fd_out);
         }
 
         //fd_out can be refered as the output for this process.
@@ -147,18 +151,20 @@ void execute_pipe(struct file * file1, struct file * file2) {
     }
     else {
         //parent process, execute file1
+        close(pipefd[0]); // Close unused read end of the pipe
+
         dup2(pipefd[1], STDOUT_FILENO);
+
 
         //Redirect STDIN if file1 has an input other than STDOUT
         int fd_in = STDIN_FILENO;
         if(file1 -> input != NULL) {
-            printf("Program '%s' has input from file '%s'\n", file1->name, file1 -> input);
-            fd_in = open(file2 -> input, O_RDONLY);
+            fd_in = open(file1 -> input, O_RDONLY);
             if(fd_in < 0) {
                 perror("Could not open input file");
                 return;
             }
-            dup2(fd_in, STDIN_FILENO);
+            dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
         }
         char ** args = get_args(file1);
         execv(file1 -> name, args);
