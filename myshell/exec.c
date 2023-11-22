@@ -129,6 +129,7 @@ void execute_pipe(struct file * file1, struct file * file2) {
         //Redirect STDOUT if file2 has an output other than STDOUT.
         int fd_out = STDOUT_FILENO;
         if(file2 -> output != NULL) {
+            printf("Program '%s' has output to file '%s'\n", file2->name, file2 -> output);
             fd_out = open(file2 -> output, O_WRONLY);
             if(fd_out < 0) {
                 perror("Could not open output file");
@@ -151,6 +152,7 @@ void execute_pipe(struct file * file1, struct file * file2) {
         //Redirect STDIN if file1 has an input other than STDOUT
         int fd_in = STDIN_FILENO;
         if(file1 -> input != NULL) {
+            printf("Program '%s' has input from file '%s'\n", file1->name, file1 -> input);
             fd_in = open(file2 -> input, O_RDONLY);
             if(fd_in < 0) {
                 perror("Could not open input file");
@@ -190,11 +192,12 @@ void exec_pipe(struct file * file1, struct file * file2) {
 }
 void execute_file(struct file * file) {
     //Redirect STDIN if file has an intput other than STDIN.
+
     int fd_in = STDIN_FILENO;
     if(file -> input != NULL) {
-        fd_in = open(file -> output, O_RDONLY);
+        fd_in = open(file -> input, O_RDONLY);
         if(fd_in < 0) {
-            perror("Could not open output file");
+            perror("Could not open input file");
             return;
         }
         dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
