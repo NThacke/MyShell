@@ -57,6 +57,36 @@ What to do? Fix the file redirection when piping. Singular program works as expe
 
 
 
+**TESTING**
+
+To test the features of this program, perform the following command :
+$ gcc parser.c myshell.c exec.c -o myshell
+$ ./myshell
+
+Then, perform the following example pipe :
+
+$ mysh > example | foo
+
+The output "hello from foo!" and "hello from example!" should appear.
+
+$ mysh > example > output.txt
+
+The text "hello from example!" should now appear in the file "output.txt"
+
+$ mysh > input.txt > middle_man > output.txt
+
+The input from "input.txt" should get sent to the program "middle_man", which will then send the text given to it by "input.txt" to "output.txt"
+
+In other words, after running the above command, the text contained within "input.txt" should now also be within "output.txt"
+
+$ mysh > input.txt > middle_man | foo > output.txt
+
+Be in awe of the bizzare behavior of the accompaning output text within "output.txt". It seems we have awoken the spirit of Dennis Ritchie, and he has come to haunt our piping redirection.
+
+Similar behavior results in redirection when piping. We need to fix this!
+
+
+
 
   
   
