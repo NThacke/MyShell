@@ -110,50 +110,133 @@ int piping(struct command * command, int index) {
 
 }
 
-void execute_pipe(struct command * command, int index) {
-    int pipefd[2];
+/**
+ * @brief Determines and returns the number of processes which must be initated to execute the given command.
+ * 
+ * 
+ * 
+ * e.g.
+ * 
+ * (1) foo | bar > output.txt
+ * (1) foo and bar are their own processes; we have 2 processes to execute. We do not process output.txt
+ * 
+ * (2) foo.txt < bar | baz > quux.txt
+ * (2) The answer is 2. Bar and baz are their own processes. Bar has its input from foo.txt, and it's output into baz.
+ * (2)                                                       Baz has its input from bar, and it's output into quux.txt
+ * 
+ * There cannot be more than two processes (as piping can only occur between two programs, and is not generalized here.)
+ * 
+ * Q : Is the following command valid?
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * (1) foo.txt > bar > baz.txt
+ * 
+ * (1) A : Yes. There is one process, bar, which has its input from foo.txt and sends its output to baz.txt
+ *
+ * (2) which > baz.txt | bar.txt
+ * 
+ * (2) A : No, this is invalid. It doesn't make sense to have a .txt file pipe into another .txt file
+ * 
+ * 
+ * (3) which | bar > output.txt
+ * 
+ * (3) A : Yes, which and bar are their own processes.
+ * 
+ * (4) which > output.txt > output2.txt
+ * 
+ * (4) A : No, this doesn't make sense. Which can have its output be redirected into output.txt, but it doesn't make sense for output.txt to redirect its output to some other text file! It's not a program, it's just a text file that recieved output!
+ * 
+ * In summary, we only need to concern ourselves with at most 2 processes. It basically boils down to one process potentially piping into some other process. If there is no pipe, then there is only one process! It would be invalid to continuously redirect output (foo > bar > quux > baz doesn't mean anything -- you're redirecting foo's output into a **file**, bar, and there is no output of bar, since it's just a text file and not a program!)
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *  
+ * 
+ * @param command 
+ * @return int 
+ */
+int number_of_processes(struct command * command) {
+    return -1;
+}
+void execute_pipe(struct file * file1, struct file * file2) {
     pid_t pid;
+    int status;
 
-    if (pipe(pipefd) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
+    int pipefd[2];
+    if(pipe(pipefd) < 0) { //invoke the system call pipe() to designate the read/write end as valid, open file-descroptiors.
+        perror("Pipe failed");  //the OS could not designate a valid file descriptor for read / write
+        return;
     }
+
+    //We are going to create one process. The current process will handle file1, and the forked process will handle file2.
+    pid = fork();
+    if(pid < 0) {
+        perror("Fork failed");
+        return;
+    }
+
+    if(pid == 0) {
+        //Redirect STDIN to the read end of the pipe. file2 is reading from file1.
+        dup2(pipefd[0], STDIN_FILENO);
+        
+        //Redirect STDOUT if file2 has an output other than STDOUT.
+        int fd_out = STDOUT_FILENO;
+        if(file2 -> output != NULL) {
+            fd_out = open(file2 -> output, O_WRONLY);
+            if(fd_out < 0) {
+                perror("Could not open output file");
+                return;
+            }
+            dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
+        }
+
+        //fd_out can be refered as the output for this process.
+        char ** args = get_args(file2);
+        execv(file2 -> name, args);
+
+        perror("Exec failed"); //exec will never return if successful
+        return;
+    }
+    else {
+        //parent process, execute file1
+        dup2(pipefd[1], STDOUT_FILENO);
+
+        //Redirect STDIN if file1 has an input other than STDOUT
+        int fd_in = STDIN_FILENO;
+        if(file1 -> input != NULL) {
+            fd_in = open(file2 -> input, O_RDONLY);
+            if(fd_in < 0) {
+                perror("Could not open input file");
+                return;
+            }
+            dup2(fd_in, STDIN_FILENO);
+        }
+        char ** args = get_args(file1);
+        execv(file1 -> name, args);
+
+        perror("Exec failed");
+        return;
+    }
+}
+
+/**
+ * @brief Executes a pipe between file1 and file2. This function should be invoked by the execute() function.
+ * 
+ * @param file1 
+ * @param file2 
+ */
+void exec_pipe(struct file * file1, struct file * file2) {
+
+    pid_t pid;
+    int status;
 
     pid = fork();
-
-    if (pid == -1) {
-        perror("fork");
-        exit(EXIT_FAILURE);
+    if(pid < 0) {
+        perror("Fork failed");
     }
-
-    if (pid == 0) {  // Child process
-        close(pipefd[1]);  // Close the write end of the pipe
-
-        dup2(pipefd[0], STDIN_FILENO);  // Redirect stdin to read end of the pipe
-
-        // Execute the second program
-        struct file * second_program = command -> files[index+1];
-        char ** args = get_args(second_program);
-        printf("Executing second program\n");
-        if(execv(second_program->name, args) == -1) {
-            perror("execv");
-            exit(EXIT_FAILURE);
-        }
-        printf("Finished second program\n");
-    } else {  // Parent process
-        close(pipefd[0]);  // Close the read end of the pipe
-
-        dup2(pipefd[1], STDOUT_FILENO);  // Redirect stdout to write end of the pipe
-
-        // Execute the first program
-        struct file * first_program = command -> files[index];
-        char ** args = get_args(first_program);
-        printf("Executing first program\n");
-        if(execv(first_program->name, args) == -1) {
-            perror("execv");
-            exit(EXIT_FAILURE);
-        }
-        printf("Finished first program\n");
+    else if(pid == 0) { //Child process for executing a pipe. Execv does not return, so we must create a process which can be consumed by the aether.
+        execute_pipe(file1, file2);
+    }
+    else { //parent process
+        waitpid(pid, &status, 0);
     }
 }
 
@@ -238,7 +321,7 @@ int execute(struct command * command) {
         else { //not built-in, create a new process to execute.
             if(piping(command, i) == TRUE) { //We are piping the current file into the next file; we must create two processes. This is different from redirection in this regard.
                 printf("Recognized a pipe!\n");
-                execute_pipe(command, i);
+                exec_pipe(command -> files[i], command -> files[i+1]); //not general !! please fix me !!
                 i++; //we don't execute the next command, since it's a pipe
             }
             else {
