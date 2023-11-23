@@ -462,13 +462,17 @@ struct command * parse(char * current_dir, char * buffer, size_t size) {
 
         switch(redirect) { //piping is the same thing as redirection, it's just that piping is between programs and not literal files!
             case output : {
+                printf("Recognized output redirection\n");
                 helper -> file -> input = previous -> name;
                 previous -> output = helper -> file -> name;
                 break;
             }
             case input : {
-                helper -> file -> output = previous -> name;
-                previous -> input = helper -> file -> name;
+                printf("Recognized input redirection\n");
+                // helper -> file -> output = previous -> name;
+                // previous -> input = helper -> file -> name;
+                helper -> file -> input = previous -> name;
+                previous -> output = helper -> file -> name;
                 break;
             }
             case pipe : {
