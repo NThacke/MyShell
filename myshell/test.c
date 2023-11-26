@@ -56,6 +56,7 @@ void parseTest() {
 
     char * buffer = "foo | bar < baz ";
     struct command * command = parse(buffer);
+    traverse_command(command);
     free_struct_command(command);
 }
 int main(void) {
