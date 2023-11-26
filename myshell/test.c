@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <unistd.h>
-#include "parser.h"
+#include "stack.h"
+#include "DLL.h"
+#include "parse.h"
 
 
 
@@ -14,47 +16,49 @@ size_t size(char * buffer) {
     }
     return i;
 }
-void test0() {
-    char * buffer = "foo bar > quux | baz bar bis ness";
-    size_t length = size(buffer);
+
+void DLL_test() {
+    struct LinkedList * list = newLinkedList();
+
+    char * entry = malloc(2*sizeof(char));
+    entry[0] = 'h';
+    entry[1] = '\0';
+
+    char * entry2 = malloc(2*sizeof(char));
+    entry2[0] = 'w';
+    entry2[1] = '\0';
     
-    char cwd [PATH_MAX];
-    getcwd(cwd, sizeof(cwd));
 
-    struct command * command = parse(cwd, buffer, length);
-    // free_struct_command(command);
+    add_tail(list, entry2);
 
-    traverse_command(command);
+    add_front(list, entry);
+    traverseLL(list);
+
+    char * output = remove_front(list);
+    printf("Output is : '%s'\n", output);
+
+
+
+    traverseLL(list);
+
+    output = remove_front(list);
+    printf("Output is : '%s'\n", output);
+
+    free(output);
+
+    traverseLL(list);
+    free_DLL(list);
+
 }
 
-void test1() {
-    char * buffer = "foo | bar > baz";
-    size_t length = size(buffer);
-    char cwd [PATH_MAX];
-    getcwd(cwd, sizeof(cwd));
+void parseTest() {
+    // char * buffer = "foo quux < bar > baz ";
 
-    struct command * command = parse(cwd, buffer, length);
-    // free_struct_command(command);
-
-    traverse_command(command);
-}
-/**
- * @brief Tests overriding pipe functionality.
- * 
- * "foo | bar < baz" 
- * 
- * Denotes that foo pipes into bar, but that bar has its input from baz. 
- */
-void test_override() {
-    char * buffer = "foo | bar < baz";
-    size_t length = size(buffer);
-    char cwd [PATH_MAX];
-    getcwd(cwd, sizeof(cwd));
-
-    struct command * command = parse(cwd, buffer, length); //no need to free.. (causes double free)... why?
-    free(command);
+    char * buffer = "foo | bar < baz ";
+    parse(buffer);
 }
 int main(void) {
 
-    test1();
+    parseTest();
+    return 0;
 }
