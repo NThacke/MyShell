@@ -107,12 +107,6 @@ void free_file_struct(struct file * file) {
         for(int i = 0; i<file->size; i++) {
             free(file->args[i]);
         }
-        if(file -> input != NULL) {
-            free(file -> input);
-        }
-        if(file -> output != NULL) {
-            free(file -> output);
-        }
         //file -> name is same as file -> args[0] by definition; no need to free it
         free(file->args);
         free(file);
@@ -324,6 +318,7 @@ struct command * parse(char * buffer) {
     // space_separate(buffer); //separates tokens with spaces
 
     struct LinkedList * tokens = tokenize(buffer);
+    traverseLL(tokens);
     struct command * command = transform(tokens);
     traverse_command(command);
     return command;
