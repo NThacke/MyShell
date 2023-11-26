@@ -323,7 +323,6 @@ struct command * parse(char * buffer) {
 
     // space_separate(buffer); //separates tokens with spaces
 
-    printf("Parsing...\n");
     struct LinkedList * tokens = tokenize(buffer);
     struct command * command = transform(tokens);
     traverse_command(command);
