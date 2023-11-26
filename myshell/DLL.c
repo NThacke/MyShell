@@ -93,7 +93,7 @@ void free_DLL(struct LinkedList * list) {
     struct DLLNode * node = list -> head;
     while(node != NULL) {
         struct DLLNode * temp = node -> next;
-        free(node -> value);
+        // free(node -> value); //THIS IS ONLY BECAUSE FREE_STRUCT_COMMAND FREES THE VALUE; DO NOT FREE THIS AS IT GETS USED INTERMITTENLY BY LL AND COMMAND
         free(node);
         node = temp;
     }
