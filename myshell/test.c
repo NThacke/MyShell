@@ -55,7 +55,8 @@ void parseTest() {
     // char * buffer = "foo quux < bar > baz ";
 
     char * buffer = "foo | bar < baz ";
-    parse(buffer);
+    struct command * command = parse(buffer);
+    free_struct_command(command);
 }
 int main(void) {
 
