@@ -132,6 +132,7 @@ struct file * new_file_struct() {
     struct file * file = malloc(sizeof(struct file));
     file -> args = malloc(sizeof(char *));
     file -> input = NULL;
+    file -> name = NULL;
     file -> output = NULL;
     file -> size = 0;
     return file;
@@ -198,12 +199,16 @@ enum redirect {
 };
 
 void add_file(struct command * command, struct file * file) {
+
+    // printf("Adding a file w/ name of '%s'\n", file -> name);
     command -> size ++;
     command -> files = realloc(command->files, (command->size) * (sizeof(struct file *)));
     command -> files[command -> size-1] = file;
 }
 
 void add_arg(struct file * file, char * arg) {
+    // printf("Adding an arg '%s' ", arg);
+    // printf("to file '%s'\n", file -> name);
     file -> size ++;
     file -> args = realloc(file->args, (file -> size) * sizeof(char *));
     file -> args[file -> size -1] = arg;
@@ -318,9 +323,11 @@ struct command * parse(char * buffer) {
     // space_separate(buffer); //separates tokens with spaces
 
     struct LinkedList * tokens = tokenize(buffer);
-    traverseLL(tokens);
+    if(TESTING) {
+        traverseLL(tokens);
+    }
     struct command * command = transform(tokens);
-    traverse_command(command);
+    free_DLL(tokens);
     return command;
 
 }
