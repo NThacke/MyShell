@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <string.h>
-#include "parser.h"
+#include "parse.h"
 #include <regex.h>
 #include <dirent.h>
 #include "which.h"
@@ -57,9 +57,7 @@ int main(int argc, char *argv[]){
             user_input[strcspn(user_input, "\n")] = 0;
             getcwd(cwd, sizeof(cwd));
             
-            struct command * command = parse(cwd, user_input, 5120);
-            
-            clean(command);
+            struct command * command = parse(user_input);
 
             traverse_command(command);
 
