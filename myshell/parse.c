@@ -9,7 +9,7 @@
 #define TRUE 1
 #define FALSE 0
 
-#define TESTING FALSE
+#define TESTING TRUE
 
 struct command {
     /**
@@ -289,6 +289,44 @@ struct command * transform(struct LinkedList * tokens) {
     return command;
 }
 
+/**
+ * @brief Determines if the given list of tokens is indeed valid.
+ * 
+ * An invalid token is one of the following (not exhaustive) : 
+ * 
+ *  foo |
+ *  < foo
+ *  foo >
+ *  
+ * 
+ *  Every redirecting token must have another, non redirecting token immediately following it and after it.
+ * 
+ * If any redirecting token does not meet that condition, the entire list of tokens is invalid.
+ * 
+ * @param command 
+ * @return int 
+ */
+int valid(struct LinkedList * tokens) {
+
+    struct DLLNode * current = tokens -> head;
+    struct DLLNode * previous = NULL;
+
+    while(current != NULL) {
+        if( (strcmp(current -> value, ">") == 0 || strcmp(current -> value, "<") == 0 || strcmp(current -> value, "|") == 0)) {
+            if(previous == NULL || current -> next == NULL) {
+                return FALSE;
+            }
+
+            if(previous != NULL && (strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, "|") == 0)) {
+                return FALSE;
+            }
+        }
+        previous = current;
+        current = current -> next;
+    }
+    return TRUE;
+}
+
 void separateTokens(char *array) {
     int i = 0;
     int j = 0;
@@ -346,8 +384,16 @@ struct command * parse(char * buffer) {
     if(TESTING) {
         traverseLL(tokens);
     }
-    struct command * command = transform(tokens);
-    free_DLL(tokens);
-    return command;
+
+
+    if(valid(tokens)) { //A valid command
+        struct command * command = transform(tokens);
+        free_DLL(tokens);
+        return command;
+    }
+    else { //An invalid command
+        free_DLL(tokens);
+        return NULL;
+    }
 
 }
