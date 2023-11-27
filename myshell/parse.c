@@ -3,7 +3,7 @@
 #include "stack.h"
 #include "DLL.h"
 #include <string.h>
-
+#include <ctype.h>
 
 
 #define TRUE 1
@@ -199,16 +199,12 @@ enum redirect {
 };
 
 void add_file(struct command * command, struct file * file) {
-
-    // printf("Adding a file w/ name of '%s'\n", file -> name);
     command -> size ++;
     command -> files = realloc(command->files, (command->size) * (sizeof(struct file *)));
     command -> files[command -> size-1] = file;
 }
 
 void add_arg(struct file * file, char * arg) {
-    // printf("Adding an arg '%s' ", arg);
-    // printf("to file '%s'\n", file -> name);
     file -> size ++;
     file -> args = realloc(file->args, (file -> size) * sizeof(char *));
     file -> args[file -> size -1] = arg;
@@ -293,6 +289,31 @@ struct command * transform(struct LinkedList * tokens) {
     return command;
 }
 
+void separateTokens(char *array) {
+    int i = 0;
+    int j = 0;
+
+    while (array[i] != '\0') {
+        if (isspace((unsigned char)array[i])) {
+            if (j > 0 && !isspace((unsigned char)array[j - 1])) {
+                array[j] = ' ';
+                j++;
+            }
+        } else {
+            array[j] = array[i];
+            j++;
+        }
+        i++;
+    }
+
+    if (j > 0 && !isspace((unsigned char)array[j - 1])) {
+        array[j] = ' '; // Adding space at the end if needed
+        j++;
+    }
+    
+    array[j] = '\0'; // Null-terminate the modified string
+}
+
 /**
  * @brief Parses the given command-line into a struct command.
  * 
@@ -320,8 +341,7 @@ struct command * parse(char * buffer) {
      * If the token is '|' then we know that the next token following this is indeed another program; the input of which is the output of the current program.
      */
 
-    // space_separate(buffer); //separates tokens with spaces
-
+    separateTokens(buffer);
     struct LinkedList * tokens = tokenize(buffer);
     if(TESTING) {
         traverseLL(tokens);
