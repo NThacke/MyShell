@@ -59,20 +59,23 @@ int main(int argc, char *argv[]){
             
             struct command * command = parse(user_input);
 
-            // traverse_command(command);
-
-            int value = execute(command);
-            free_struct_command(command);
-            if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
-                printf("Exiting...\n");
-                exit(EXIT_SUCCESS);
+            if(command == NULL) {
+                printf("Command not recognized\n");
             }
             else {
-                memset(user_input, 0, sizeof user_input);
-                // Set up next iteration
-                printf("mysh> ");
+                traverse_command(command);
+
+                int value = execute(command);
+                free_struct_command(command);
+                if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
+                    printf("Exiting...\n");
+                    exit(EXIT_SUCCESS);
+                }
             }
+            memset(user_input, 0, sizeof user_input);
+            // Set up next iteration
+            printf("mysh> ");
         }
-   }
+    }
     return 0;
 }
