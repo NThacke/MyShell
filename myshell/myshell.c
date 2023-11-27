@@ -12,7 +12,7 @@
 #define TRUE 0
 #define FALSE 1
 
-
+char init_dir[PATH_MAX];
 
 
 /* Changes directory
@@ -34,8 +34,13 @@ void pwd_builtin() {
     }
 }
 
+char * inital_directory(void) {
+    return init_dir;
+}
+
 
 int main(int argc, char *argv[]){
+    getcwd(init_dir, sizeof(init_dir));
     if (argc > 1) {
         // Batch mode
         printf("Running in batch mode");
