@@ -136,6 +136,7 @@ void execute_pipe(struct file * file1, struct file * file2) {
             fd_out = open(file2 -> output, O_WRONLY);
             if(fd_out < 0) {
                 perror("Could not open output file");
+                exit(EXIT_FAILURE);         //end the current process
                 return;
             }
             dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
@@ -162,6 +163,7 @@ void execute_pipe(struct file * file1, struct file * file2) {
             fd_in = open(file1 -> input, O_RDONLY);
             if(fd_in < 0) {
                 perror("Could not open input file");
+                exit(EXIT_FAILURE);         //end the current process
                 return;
             }
             dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
@@ -204,6 +206,7 @@ void execute_file(struct file * file) {
         fd_in = open(file -> input, O_RDONLY);
         if(fd_in < 0) {
             perror("Could not open input file");
+            exit(EXIT_FAILURE);         //end the current process
             return;
         }
         dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
@@ -212,10 +215,10 @@ void execute_file(struct file * file) {
     //Redirect STDOUT if file has an output other than STDOUT.
     int fd_out = STDOUT_FILENO;
     if(file -> output != NULL) {
-        fd_out = open(file -> output, O_WRONLY);
+        fd_out = open(file -> output, S_IRUSR | S_IWUSR | S_IRGRP, 0640);
         if(fd_out < 0) {
             perror("Could not open output file");
-            return;
+            exit(EXIT_FAILURE);         //end the current process
         }
         dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
     }
@@ -235,7 +238,9 @@ void exec_file(struct file * file) {
         execute_file(file);
     }
     else { //parent process
+        printf("Waiting...\n");
         waitpid(pid, &status, 0);
+        printf("Done aiting\n");
     }
 }
 /**
@@ -294,7 +299,7 @@ int execute(struct command * command) {
         if(command -> size > 0) {
             struct file * file = command -> files[0];
             if(strcmp(file -> name, "exit") == 0) {
-                return EXIT_SUCCESS;
+                exit(EXIT_SUCCESS);
             }
         }
     }
