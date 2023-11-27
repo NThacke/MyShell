@@ -293,7 +293,7 @@ int * deteremine_program_indecies(struct command * command) {
 
     for(int i = 0; i<command -> size; i++) {
         struct file * file = command -> files[i];
-        if(access(file -> name, X_OK) == FALSE) {
+        if(access(file -> name, X_OK) == 0) {
             //the file is executable, and is thus a program
             arr[index] = i;
             index++;
