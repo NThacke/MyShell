@@ -143,8 +143,7 @@ void execute_pipe(struct file * file1, struct file * file2) {
         }
 
         //fd_out can be refered as the output for this process.
-        char ** args = get_args(file2);
-        execv(file2 -> name, args);
+        execv(file2 -> name, file2->args);
 
         perror("Exec failed"); //exec will never return if successful
         return;
@@ -166,8 +165,7 @@ void execute_pipe(struct file * file1, struct file * file2) {
             }
             dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
         }
-        char ** args = get_args(file1);
-        execv(file1 -> name, args);
+        execv(file1 -> name, file1 -> args);
 
         perror("Exec failed");
         return;
@@ -220,8 +218,8 @@ void execute_file(struct file * file) {
         dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
     }
 
-    char ** args = get_args(file); //change this !! Args will be malloced and must be freed, but execv never returns (so we can't ever free it). Solution : Reference file -> args as the paramter to exeecv. This means we must have file -> args have a NULL paramtere at the tail end. This can be done inside clean() within the parser file.
-    execv(file -> name, args);
+    // char ** args = get_args(file); //change this !! Args will be malloced and must be freed, but execv never returns (so we can't ever free it). Solution : Reference file -> args as the paramter to exeecv. This means we must have file -> args have a NULL paramtere at the tail end. This can be done inside clean() within the parser file.
+    execv(file -> name, file -> args);
 }
 void exec_file(struct file * file) {
     pid_t pid;
@@ -296,6 +294,7 @@ int execute(struct command * command) {
             if(strcmp(file -> name, "exit") == 0) {
                 exit(EXIT_SUCCESS);
             }
+            printf("File not recognized\n");
         }
     }
     printf("Exiting execute()...\n");
