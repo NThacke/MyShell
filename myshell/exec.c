@@ -6,58 +6,9 @@
 #include <unistd.h>
 
 
-#define TRUE 0
-#define FALSE 1
+#define TRUE 1
+#define FALSE 0
 
-
-/**
- * @brief Determines whether the given file refernces a built-in command, such as "pwd", "which", or "cd". Returns true (0) if any of them are true.
- * 
- * @param file 
- * @return int 
- */
-int built_in(struct file * file) {
-    char * name = file -> name;
-    if(strcmp(name, "which") == 0) {
-        return TRUE;
-    }
-    if(strcmp(name, "pwd") == 0) {
-        return TRUE;
-    }
-    if(strcmp(name, "cd") == 0) {
-        return TRUE;
-    }
-    if(strcmp(name, "exit") == 0) {
-        return TRUE;
-    }
-    // return strcmp(name, "which") || strcmp(name, "pwd") || strcmp(name, "cd") || strcmp(name, "exit");
-    return FALSE;
-}
-/**
- * @brief Executes the given file, which must be a built-in command.
- * 
- * @param file 
- */
-int execute_built_in(struct file * file) {
-    if(built_in(file) == 0) { //robust checking
-
-        char * name = file -> name;
-        if(strcmp(name, "exit") == 0) {
-            printf("goodbye world\n");
-            return EXIT_SUCCESS;
-        }
-    }
-    return -1;
-}
-
-char ** get_args(struct file * file) {
-    char ** args = malloc( (file->size+1) * sizeof(char *));
-    for(int i = 0; i<file -> size; i++) {
-        args[i] = file -> args[i];
-    }
-    args[file->size] = NULL;
-    return args;
-}
 
 /**
  * @brief Determines and returns the number of processes which must be initated to execute the given command.
@@ -236,6 +187,91 @@ void exec_file(struct file * file) {
         waitpid(pid, &status, 0);
     }
 }
+
+char * new_allocation(char * buffer) {
+    printf("Allocaitng new space for '%s'\n", buffer);
+    char * new = malloc( (strlen(buffer) + 1) * sizeof(char));
+    int index = 0;
+    while(index < strlen(buffer)) {
+        new[index] = buffer[index];
+        index++;
+    }
+    new[index] = '\0';
+    printf("New string is '%s'\n", new);
+    return new;
+}
+char * get_unix_path(char * filename) {
+
+    char* paths[] = {"/usr/local/bin/", "/usr/bin/", "/bin/"};
+    char* fullPath = NULL;
+    
+    for (int i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i) {
+        size_t pathLen = strlen(paths[i]);
+        size_t filenameLen = strlen(filename);
+        size_t fullPathLen = pathLen + filenameLen + 1; // +1 for null terminator
+
+        fullPath = (char*)malloc((fullPathLen) * sizeof(char));
+        if (fullPath == NULL) {
+            perror("Memory allocation failed");
+            return NULL;
+        }
+
+        strcpy(fullPath, paths[i]);
+        strcat(fullPath, filename);
+
+        // Check if file exists
+        if (access(fullPath, F_OK) != -1) {
+            return fullPath;
+        }
+
+        free(fullPath);
+    }
+
+    //return newly allocated array; double free occurs because of this!
+    return new_allocation(filename);
+}
+
+int slash(char * buffer) {
+    int index = 0;
+    while(buffer[index] != '\0') {
+        if(buffer[index] == '/') {
+            return TRUE;
+        }
+        index++;
+    }
+    return FALSE;
+}
+int built_in_file_name(char * buffer) {
+    return strcmp(buffer, "cd") == 0 || strcmp(buffer, "pwd") == 0 || strcmp(buffer, "which") == 0;
+}
+int is_exit(char * buffer) {
+    return strcmp(buffer, "exit") == 0;
+}
+void determine_paths(struct command * command) {
+    printf("Determining paths....\n");
+    for(int i = 0; i<command->size; i++) {
+        struct file * file = command -> files[i];
+
+        if(slash(file -> name)) {
+            printf("'%s' contains a slash\n", file -> name);
+            continue; //don't modify anything; the given path is what the user wants
+        }
+        else if(built_in_file_name(file -> args[0])) { //modify the path to be under our built-ins
+            printf("'%s' is a built-in\n", file -> args[0]);
+        }
+        else if(is_exit(file->name)){ //do nothing, this is exit command
+            printf("'%s' is exit command\n", file -> name);
+            continue;
+        }
+        else {//modify the path to be a UNIX command
+             //we no longer refer to this, we overwrite it, but need to still free this address
+            printf("'%s' refers to a unix command\n", file -> name);
+            free(file -> name);
+            file -> name = get_unix_path(file -> args[0]);
+            printf("The path is '%s'\n", file -> name);
+        }
+    }
+}
 /**
  * @brief This function determines which indecies of the given command refer to a file which is indeed a program, and returns it.
  * 
@@ -257,7 +293,7 @@ int * deteremine_program_indecies(struct command * command) {
 
     for(int i = 0; i<command -> size; i++) {
         struct file * file = command -> files[i];
-        if(access(file -> name, X_OK) == TRUE) {
+        if(access(file -> name, X_OK) == FALSE) {
             //the file is executable, and is thus a program
             arr[index] = i;
             index++;
@@ -269,6 +305,8 @@ int * deteremine_program_indecies(struct command * command) {
 int execute(struct command * command) {
     
     printf("Execute\n");
+
+    determine_paths(command);
 
     int * arr = deteremine_program_indecies(command);
     if(arr[0] >= 0) {
