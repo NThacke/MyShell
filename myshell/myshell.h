@@ -1,0 +1,1 @@
+char * inital_directory(void);
