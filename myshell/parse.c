@@ -284,6 +284,7 @@ struct command * transform(struct LinkedList * tokens) {
                 current_file -> name = current_token -> value;
                 current_file -> input = temp -> name;
 
+                add_arg(temp, NULL);
                 add_file(command, temp);
             }
             default : {
@@ -315,6 +316,7 @@ struct command * transform(struct LinkedList * tokens) {
         }
 
         if(current_token -> next == NULL) {
+            add_arg(current_file, NULL);
             add_file(command, current_file);
         }
         current_token = current_token -> next;        
