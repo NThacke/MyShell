@@ -4,10 +4,14 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "myshell.h"
+#include <limits.h>
 
 
 #define TRUE 1
 #define FALSE 0
+
+
 
 
 /**
@@ -228,7 +232,8 @@ char * get_unix_path(char * filename) {
     }
 
     //return newly allocated array; double free occurs because of this!
-    return new_allocation(filename);
+    return NULL;
+    // return new_allocation(filename);
 }
 
 int slash(char * buffer) {
@@ -241,6 +246,32 @@ int slash(char * buffer) {
     }
     return FALSE;
 }
+
+char* appendFilenameToDirectory(const char* directory, const char* filename) {
+    size_t dirLength = strlen(directory);
+    size_t fileLength = strlen(filename);
+
+    // Allocate memory for the result path
+    char* resultPath = (char*)malloc((dirLength + fileLength + 2) * sizeof(char)); // +2 for '/' and '\0'
+    if (resultPath == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
+    }
+
+    // Copy the directory path to the resultPath
+    strcpy(resultPath, directory);
+
+    // Ensure there's a directory separator at the end of the directory path
+    if (resultPath[dirLength - 1] != '/' && resultPath[dirLength - 1] != '\\') {
+        strcat(resultPath, "/");
+    }
+
+    // Append the filename to the resultPath
+    strcat(resultPath, filename);
+
+    return resultPath;
+}
+
 int built_in_file_name(char * buffer) {
     return strcmp(buffer, "cd") == 0 || strcmp(buffer, "pwd") == 0 || strcmp(buffer, "which") == 0;
 }
@@ -257,7 +288,10 @@ void determine_paths(struct command * command) {
             continue; //don't modify anything; the given path is what the user wants
         }
         else if(built_in_file_name(file -> args[0])) { //modify the path to be under our built-ins
-            printf("'%s' is a built-in\n", file -> args[0]);
+            // printf("'%s' is a built-in\n", file -> args[0]);
+            // printf("The original working directory was '%s'\n", inital_directory());
+            char * path = appendFilenameToDirectory(inital_directory(), file -> args[0]);
+            file -> name = path;
         }
         else if(is_exit(file->name)){ //do nothing, this is exit command
             printf("'%s' is exit command\n", file -> name);
@@ -268,7 +302,9 @@ void determine_paths(struct command * command) {
             printf("'%s' refers to a unix command\n", file -> name);
             free(file -> name);
             file -> name = get_unix_path(file -> args[0]);
-            printf("The path is '%s'\n", file -> name);
+            if(file -> name != NULL) {
+                printf("The path is '%s'\n", file -> name);
+            }
         }
     }
 }
@@ -329,13 +365,17 @@ int execute(struct command * command) {
         //no executable program
         if(command -> size > 0) {
             struct file * file = command -> files[0];
-            if(strcmp(file -> name, "exit") == 0) {
-                exit(EXIT_SUCCESS);
+
+            if(file -> name != NULL) {
+                if(strcmp(file -> name, "exit") == 0) {
+                    printf("Exiting ...\n");
+                    exit(EXIT_SUCCESS);
+                }
             }
             printf("File not recognized\n");
         }
     }
-    printf("Exiting execute()...\n");
+    // printf("Exiting execute()...\n");
     free(arr);
     return -1;
 }
