@@ -108,6 +108,7 @@ void free_file_struct(struct file * file) {
             free(file->args[i]);
         }
         //file -> name is same as file -> args[0] by definition; no need to free it
+        free(file -> name);
         free(file->args);
         free(file);
     }
@@ -210,6 +211,33 @@ void add_arg(struct file * file, char * arg) {
     file -> args[file -> size -1] = arg;
 }
 
+char * file_name(char * path) {
+    const char* fileName = path + strlen(path) - 1; // Start at the end of the path
+
+    // Move backward until a directory separator or the beginning of the path is found
+    while (fileName >= path && *fileName != '\\' && *fileName != '/') {
+        fileName--;
+    }
+
+    // Move forward by one character to point at the filename
+    fileName++;
+
+    // Calculate the length of the filename
+    size_t fileNameLength = strlen(fileName);
+
+    // Allocate memory for the filename on the heap
+    char* extractedFileName = (char*)malloc((fileNameLength + 1) * sizeof(char));
+    if (extractedFileName == NULL) {
+        printf("Memory allocation failed.\n");
+        return NULL; // Return NULL if allocation fails
+    }
+
+    // Copy the filename to the newly allocated memory
+    strcpy(extractedFileName, fileName);
+
+    return extractedFileName;
+
+}
 int not_redirect(struct DLLNode * node) {
     return strcmp(node -> value, ">") != 0 && strcmp(node -> value, "<") != 0 && strcmp(node -> value, "|");
 }
@@ -261,7 +289,14 @@ struct command * transform(struct LinkedList * tokens) {
             default : {
                 //nothing; the current token is simply an argument to the current file
                 if(not_redirect(current_token)) {
-                    add_arg(current_file, current_token -> value);
+
+                    if(strcmp(current_file -> name, current_token -> value) == 0) {
+                        char * filename = file_name(current_file -> name);
+                        add_arg(current_file, filename);
+                    }
+                    else {
+                        add_arg(current_file, current_token -> value);
+                    }
                 }
             }
         }
