@@ -235,9 +235,7 @@ void exec_file(struct file * file) {
         execute_file(file);
     }
     else { //parent process
-        printf("Waiting...\n");
         waitpid(pid, &status, 0);
-        printf("Done aiting\n");
     }
 }
 /**
