@@ -369,6 +369,41 @@ int * deteremine_program_indecies(struct command * command) {
     }
     return arr;
 }
+
+void special_free(struct command * command) {
+
+    if(command -> size == 1) {
+        struct file * file = command -> files[0];
+        if(file -> input != NULL) {
+            free(file -> input);
+        }
+        if(file -> output != NULL) {
+            free(file -> output);
+        }
+    }
+    if(command -> size ==2 ) { // piping
+        printf("Size is 2\n");
+        struct file * file1 = command -> files[0];
+        struct file * file2 = command -> files[1];
+
+        if(file1 -> input != NULL) {
+            printf("Freeing '%s'\n", file1 -> input);
+            free(file1 -> input);
+        }
+        if(file1 -> output != NULL && file1 -> output != file2 -> name) {
+            printf("Freeing '%s'\n", file1 -> output);
+            free(file1 -> output);
+        }
+        if(file2 -> output != NULL) {
+            printf("Freeing '%s'\n", file2 -> output);
+            free(file2 -> output);
+        }
+        if(file2 -> input != NULL && file2 -> input != file1 -> name) {
+            printf("Freeing '%s'\n", file2 -> input);
+            free(file2 -> input);
+        }
+    }
+}
 int execute(struct command * command) {
     
     printf("Execute\n");
@@ -412,6 +447,7 @@ int execute(struct command * command) {
             if(file -> name != NULL) {
                 free(arr);
                 if(strcmp(file -> name, "exit") == 0) {
+                    special_free(command);
                     return EXIT_SUCCESS;
                 }
                 if(strcmp(file -> args[0], "cd") == 0) {
@@ -419,6 +455,8 @@ int execute(struct command * command) {
                     return -1;
                 }
             }
+            
+            special_free(command);
             printf("File not recognized\n");
             return -1;
         }
