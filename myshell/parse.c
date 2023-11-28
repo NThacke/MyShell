@@ -3,6 +3,8 @@
 #include "DLL.h"
 #include <string.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 
 #define TRUE 1
@@ -107,9 +109,15 @@ void free_file_struct(struct file * file) {
             printf("Freeing '%s' at address '%p'\n", file -> args[i], file -> args[i]);
             free(file->args[i]);
         }
-        //file -> name is same as file -> args[0] by definition; no need to free it
         free(file -> name);
         free(file->args);
+        
+        if(file -> input != NULL && access(file -> input, X_OK) != 0) { //the input is non executable; it will not be a file struct, so we must free it.
+            free(file -> input);
+        }
+        if(file -> output != NULL && access(file -> output, X_OK) != 0) { //the output is non executable; it will not be a file struct, so we must free it.
+            free(file -> output);
+        }
         free(file);
     }
 }
@@ -197,7 +205,7 @@ struct LinkedList * tokenize(char * buffer) {
  * 
  */
 enum redirect {
-    input, output, pipe, nil
+    input, output, pipe_r, nil
 };
 
 void add_file(struct command * command, struct file * file) {
@@ -277,7 +285,7 @@ struct command * transform(struct LinkedList * tokens) {
                     current_file -> output = current_token -> value;
                     break;
                 }
-                case pipe : {
+                case pipe_r : {
                     //the current file is piping into the current token
                     current_file -> output = current_token -> value;
 
@@ -309,13 +317,16 @@ struct command * transform(struct LinkedList * tokens) {
             }
 
             if( strcmp(current_token -> value, "<") == 0) {
+                free(current_token -> value);
                 redirect = input;
             }
             else if( strcmp(current_token -> value, ">") == 0) {
+                free(current_token -> value);
                 redirect = output;
             }
             else if(strcmp(current_token -> value, "|") == 0) {
-                redirect = pipe;
+                free(current_token -> value);
+                redirect = pipe_r;
             }
             else {
                 redirect = nil;
