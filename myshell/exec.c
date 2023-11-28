@@ -387,10 +387,22 @@ int execute(struct command * command) {
         struct file * file1 = command -> files[arr[0]];
         struct file * file2 = command -> files[arr[1]];
         exec_pipe(file1, file2);
+        if(file1 -> input != NULL) {
+            free(file1 -> input);
+        }
+        if(file2 -> output != NULL) {
+            free(file2 -> output);
+        }
     }
     else if(arr[0] >= 0) { //one executable program
         struct file * file1 = command -> files[arr[0]];
         exec_file(file1);
+        if(file1 -> input != NULL) {
+            free(file1 -> input);
+        }
+        if(file1 -> output != NULL) {
+            free(file1 -> output);
+        }
     }
     else {
         //no executable program
