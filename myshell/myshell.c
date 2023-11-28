@@ -6,7 +6,6 @@
 #include "parse.h"
 #include <regex.h>
 #include <dirent.h>
-#include "which.h"
 #include "exec.h"
 
 #define TRUE 0

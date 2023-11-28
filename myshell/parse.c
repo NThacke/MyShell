@@ -3,6 +3,8 @@
 #include "DLL.h"
 #include <string.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 
 #define TRUE 1
@@ -104,9 +106,9 @@ struct command * new_command_struct() {
 void free_file_struct(struct file * file) {
     if(file != NULL) {
         for(int i = 0; i<file->size; i++) {
+            printf("Freeing '%s' at address '%p'\n", file -> args[i], file -> args[i]);
             free(file->args[i]);
         }
-        //file -> name is same as file -> args[0] by definition; no need to free it
         free(file -> name);
         free(file->args);
         free(file);
@@ -196,7 +198,7 @@ struct LinkedList * tokenize(char * buffer) {
  * 
  */
 enum redirect {
-    input, output, pipe, nil
+    input, output, pipe_r, nil
 };
 
 void add_file(struct command * command, struct file * file) {
@@ -268,16 +270,25 @@ struct command * transform(struct LinkedList * tokens) {
             switch(redirect) {
                 case input : {
                     //the current file has input from the current token
+                    if(current_file -> input != NULL) {
+                        free(current_file -> input); //if you had an input redirect prior to this input, you must free it as it will not be referenced any further!
+                    }
                     current_file -> input = current_token -> value;
                     break;
                 }
                 case output : {
+                    if(current_file -> output != NULL) {
+                        free(current_file -> output); //if you had an input redirect prior to this input, you must free it as it will not be referenced any further!
+                    }
                     //the current file has output to the current token
                     current_file -> output = current_token -> value;
                     break;
                 }
-                case pipe : {
+                case pipe_r : {
                     //the current file is piping into the current token
+                    if(current_file -> output != NULL) { //if you had an output redirect prior to this pipe, you must free it as it will not be referenced any further!
+                        free(current_file -> output);
+                    }
                     current_file -> output = current_token -> value;
 
                     struct file * temp = current_file;
@@ -291,10 +302,14 @@ struct command * transform(struct LinkedList * tokens) {
                 default : {
                     //nothing; the current token is simply an argument to the current file
                     if(not_redirect(current_token)) {
-
+                
                         if(strcmp(current_file -> name, current_token -> value) == 0) {
                             char * filename = file_name(current_file -> name);
                             add_arg(current_file, filename);
+                            if(current_token -> value != current_file -> name) { //Since we added the argument /filename/ to the file struct, the current_token -> value will not be freed, and must be freed here. But only if the token and filename are not the same pointer.
+                                free(current_token -> value);
+                            }
+                            current_token -> value = filename;
                         }
                         else {
                             add_arg(current_file, current_token -> value);
@@ -304,13 +319,16 @@ struct command * transform(struct LinkedList * tokens) {
             }
 
             if( strcmp(current_token -> value, "<") == 0) {
+                free(current_token -> value);
                 redirect = input;
             }
             else if( strcmp(current_token -> value, ">") == 0) {
+                free(current_token -> value);
                 redirect = output;
             }
             else if(strcmp(current_token -> value, "|") == 0) {
-                redirect = pipe;
+                free(current_token -> value);
+                redirect = pipe_r;
             }
             else {
                 redirect = nil;

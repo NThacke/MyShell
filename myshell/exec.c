@@ -277,6 +277,29 @@ char* appendFilenameToDirectory(const char* directory, char* filename) {
     return resultPath;
 }
 
+/**
+ * This function serves as the cd command.
+ * 
+ * We cannot have cd be its own executable file, as executables get run in their own process, and as such, changes to the directory only reflect in that process, and NOT the process that the shell runs in.
+*/
+int cd(int argc, char ** argv) {
+    if(argc < 2) {
+        if(chdir("/") != 0) {
+            printf(" cd : chdir() failed\n");
+            printf("changed directory successfully\n");
+        }
+    }
+    else if(argc == 2) {
+        if(chdir(argv[1]) != 0) {
+            printf(" cd: chdir() failed\n");
+        }
+        printf("changed directory successfully\n");
+    }
+    else {
+        printf(" cd: too many arguments\n");
+    }
+}
+
 int built_in_file_name(char * buffer) {
     return strcmp(buffer, "cd") == 0 || strcmp(buffer, "pwd") == 0 || strcmp(buffer, "which") == 0;
 }
@@ -293,9 +316,11 @@ void determine_paths(struct command * command) {
             continue; //don't modify anything; the given path is what the user wants
         }
         else if(built_in_file_name(file -> args[0])) { //modify the path to be under our built-ins
-            // printf("'%s' is a built-in\n", file -> args[0]);
-            // printf("The original working directory was '%s'\n", inital_directory());
-            char * path = appendFilenameToDirectory(inital_directory(), file -> args[0]);
+            
+            printf("'%s' is a built-in\n", file -> args[0]);
+            char * dir = appendFilenameToDirectory(inital_directory(), "built_ins");
+            char * path = appendFilenameToDirectory(dir, file -> args[0]);
+            free(dir);                                              //dir is malloced on heap and doesn't get referenced any further
             free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
             file -> name = path;
         }
@@ -304,12 +329,12 @@ void determine_paths(struct command * command) {
             continue;
         }
         else {//modify the path to be a UNIX command
-             //we no longer refer to this, we overwrite it, but need to still free this address
             printf("'%s' refers to a unix command\n", file -> name);
-            free(file -> name);
-            file -> name = get_unix_path(file -> args[0]);
-            if(file -> name != NULL) {
-                printf("The path is '%s'\n", file -> name);
+            char * unix_path = get_unix_path(file -> args[0]);
+            if(unix_path != NULL) {
+                printf("The path is '%s'\n", unix_path);
+                free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
+                file -> name = unix_path;
             }
         }
     }
@@ -344,6 +369,41 @@ int * deteremine_program_indecies(struct command * command) {
     }
     return arr;
 }
+
+void special_free(struct command * command) {
+
+    if(command -> size == 1) {
+        struct file * file = command -> files[0];
+        if(file -> input != NULL) {
+            free(file -> input);
+        }
+        if(file -> output != NULL) {
+            free(file -> output);
+        }
+    }
+    if(command -> size ==2 ) { // piping
+        printf("Size is 2\n");
+        struct file * file1 = command -> files[0];
+        struct file * file2 = command -> files[1];
+
+        if(file1 -> input != NULL) {
+            printf("Freeing '%s'\n", file1 -> input);
+            free(file1 -> input);
+        }
+        if(file1 -> output != NULL && file1 -> output != file2 -> name) {
+            printf("Freeing '%s'\n", file1 -> output);
+            free(file1 -> output);
+        }
+        if(file2 -> output != NULL) {
+            printf("Freeing '%s'\n", file2 -> output);
+            free(file2 -> output);
+        }
+        if(file2 -> input != NULL && file2 -> input != file1 -> name) {
+            printf("Freeing '%s'\n", file2 -> input);
+            free(file2 -> input);
+        }
+    }
+}
 int execute(struct command * command) {
     
     printf("Execute\n");
@@ -362,23 +422,43 @@ int execute(struct command * command) {
         struct file * file1 = command -> files[arr[0]];
         struct file * file2 = command -> files[arr[1]];
         exec_pipe(file1, file2);
+        if(file1 -> input != NULL) {
+            free(file1 -> input);
+        }
+        if(file2 -> output != NULL) {
+            free(file2 -> output);
+        }
     }
     else if(arr[0] >= 0) { //one executable program
         struct file * file1 = command -> files[arr[0]];
         exec_file(file1);
+        if(file1 -> input != NULL) {
+            free(file1 -> input);
+        }
+        if(file1 -> output != NULL) {
+            free(file1 -> output);
+        }
     }
     else {
         //no executable program
         if(command -> size > 0) {
+            free(arr);
             struct file * file = command -> files[0];
 
             if(file -> name != NULL) {
                 if(strcmp(file -> name, "exit") == 0) {
-                    free(arr);
+                    special_free(command);
                     return EXIT_SUCCESS;
                 }
+                if(strcmp(file -> args[0], "cd") == 0) {
+                    cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
+                    return -1;
+                }
             }
+            
+            special_free(command);
             printf("File not recognized\n");
+            return -1;
         }
     }
     // printf("Exiting execute()...\n");

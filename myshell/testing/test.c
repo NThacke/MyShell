@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <unistd.h>
-#include "stack.h"
 #include "DLL.h"
 #include "parse.h"
 
