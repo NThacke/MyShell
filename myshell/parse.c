@@ -270,16 +270,25 @@ struct command * transform(struct LinkedList * tokens) {
             switch(redirect) {
                 case input : {
                     //the current file has input from the current token
+                    if(current_file -> input != NULL) {
+                        free(current_file -> input); //if you had an input redirect prior to this input, you must free it as it will not be referenced any further!
+                    }
                     current_file -> input = current_token -> value;
                     break;
                 }
                 case output : {
+                    if(current_file -> output != NULL) {
+                        free(current_file -> output); //if you had an input redirect prior to this input, you must free it as it will not be referenced any further!
+                    }
                     //the current file has output to the current token
                     current_file -> output = current_token -> value;
                     break;
                 }
                 case pipe_r : {
                     //the current file is piping into the current token
+                    if(current_file -> output != NULL) { //if you had an output redirect prior to this pipe, you must free it as it will not be referenced any further!
+                        free(current_file -> output);
+                    }
                     current_file -> output = current_token -> value;
 
                     struct file * temp = current_file;
