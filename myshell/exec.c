@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "myshell.h"
+#include <sys/wait.h>
 #include <limits.h>
 
 
@@ -173,8 +174,12 @@ void execute_file(struct file * file) {
         dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
     }
 
-    // char ** args = get_args(file); //change this !! Args will be malloced and must be freed, but execv never returns (so we can't ever free it). Solution : Reference file -> args as the paramter to exeecv. This means we must have file -> args have a NULL paramtere at the tail end. This can be done inside clean() within the parser file.
+    printf("Executing program '%s'\n", file->name);
     execv(file -> name, file -> args);
+    free_file_struct(file);
+    printf("Execution failed\n");
+    perror("Execv failed");
+    exit(EXIT_FAILURE);
 }
 void exec_file(struct file * file) {
     pid_t pid;
@@ -247,7 +252,7 @@ int slash(char * buffer) {
     return FALSE;
 }
 
-char* appendFilenameToDirectory(const char* directory, const char* filename) {
+char* appendFilenameToDirectory(const char* directory, char* filename) {
     size_t dirLength = strlen(directory);
     size_t fileLength = strlen(filename);
 
@@ -291,6 +296,7 @@ void determine_paths(struct command * command) {
             // printf("'%s' is a built-in\n", file -> args[0]);
             // printf("The original working directory was '%s'\n", inital_directory());
             char * path = appendFilenameToDirectory(inital_directory(), file -> args[0]);
+            free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
             file -> name = path;
         }
         else if(is_exit(file->name)){ //do nothing, this is exit command
@@ -368,8 +374,8 @@ int execute(struct command * command) {
 
             if(file -> name != NULL) {
                 if(strcmp(file -> name, "exit") == 0) {
-                    printf("Exiting ...\n");
-                    exit(EXIT_SUCCESS);
+                    free(arr);
+                    return EXIT_SUCCESS;
                 }
             }
             printf("File not recognized\n");
