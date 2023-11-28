@@ -111,13 +111,6 @@ void free_file_struct(struct file * file) {
         }
         free(file -> name);
         free(file->args);
-        
-        if(file -> input != NULL && access(file -> input, X_OK) != 0) { //the input is non executable; it will not be a file struct, so we must free it.
-            free(file -> input);
-        }
-        if(file -> output != NULL && access(file -> output, X_OK) != 0) { //the output is non executable; it will not be a file struct, so we must free it.
-            free(file -> output);
-        }
         free(file);
     }
 }
