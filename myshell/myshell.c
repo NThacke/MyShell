@@ -73,8 +73,7 @@ int main(int argc, char *argv[]){
                 int value = execute(command);
                 free_struct_command(command);
                 if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
-                    printf("Exiting...\n");
-                    exit(EXIT_SUCCESS);
+                    return value;
                 }
             }
             memset(user_input, 0, sizeof user_input);
