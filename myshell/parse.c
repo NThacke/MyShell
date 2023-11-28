@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "stack.h"
 #include "DLL.h"
 #include <string.h>
 #include <ctype.h>
@@ -250,81 +249,82 @@ int not_redirect(struct DLLNode * node) {
  */
 struct command * transform(struct LinkedList * tokens) {
 
-    struct command * command = new_command_struct();
-
-
-    struct file * current_file = new_file_struct();
-
     struct DLLNode * current_token = tokens -> head;
 
-    enum redirect redirect = nil;
+    if(current_token != NULL) {
+        struct command * command = new_command_struct();
 
-    while(current_token != NULL) {
 
-        if(current_file -> name == NULL) {
-            current_file -> name = current_token -> value;
-        }
+        struct file * current_file = new_file_struct();
 
-        switch(redirect) {
-            case input : {
-                //the current file has input from the current token
-                current_file -> input = current_token -> value;
-                break;
-            }
-            case output : {
-                //the current file has output to the current token
-                current_file -> output = current_token -> value;
-                break;
-            }
-            case pipe : {
-                //the current file is piping into the current token
-                current_file -> output = current_token -> value;
+        enum redirect redirect = nil;
 
-                struct file * temp = current_file;
-                current_file = new_file_struct(); //once you say pipe, you are tokenzing a different file
+        while(current_token != NULL) {
+
+            if(current_file -> name == NULL) {
                 current_file -> name = current_token -> value;
-                current_file -> input = temp -> name;
-
-                add_arg(temp, NULL);
-                add_file(command, temp);
             }
-            default : {
-                //nothing; the current token is simply an argument to the current file
-                if(not_redirect(current_token)) {
 
-                    if(strcmp(current_file -> name, current_token -> value) == 0) {
-                        char * filename = file_name(current_file -> name);
-                        add_arg(current_file, filename);
-                    }
-                    else {
-                        add_arg(current_file, current_token -> value);
+            switch(redirect) {
+                case input : {
+                    //the current file has input from the current token
+                    current_file -> input = current_token -> value;
+                    break;
+                }
+                case output : {
+                    //the current file has output to the current token
+                    current_file -> output = current_token -> value;
+                    break;
+                }
+                case pipe : {
+                    //the current file is piping into the current token
+                    current_file -> output = current_token -> value;
+
+                    struct file * temp = current_file;
+                    current_file = new_file_struct(); //once you say pipe, you are tokenzing a different file
+                    current_file -> name = current_token -> value;
+                    current_file -> input = temp -> name;
+
+                    add_arg(temp, NULL);
+                    add_file(command, temp);
+                }
+                default : {
+                    //nothing; the current token is simply an argument to the current file
+                    if(not_redirect(current_token)) {
+
+                        if(strcmp(current_file -> name, current_token -> value) == 0) {
+                            char * filename = file_name(current_file -> name);
+                            add_arg(current_file, filename);
+                        }
+                        else {
+                            add_arg(current_file, current_token -> value);
+                        }
                     }
                 }
             }
-        }
 
-        if( strcmp(current_token -> value, "<") == 0) {
-            redirect = input;
-        }
-        else if( strcmp(current_token -> value, ">") == 0) {
-            redirect = output;
-        }
-        else if(strcmp(current_token -> value, "|") == 0) {
-            redirect = pipe;
-        }
-        else {
-            redirect = nil;
-        }
+            if( strcmp(current_token -> value, "<") == 0) {
+                redirect = input;
+            }
+            else if( strcmp(current_token -> value, ">") == 0) {
+                redirect = output;
+            }
+            else if(strcmp(current_token -> value, "|") == 0) {
+                redirect = pipe;
+            }
+            else {
+                redirect = nil;
+            }
 
-        if(current_token -> next == NULL) {
-            add_arg(current_file, NULL);
-            add_file(command, current_file);
+            if(current_token -> next == NULL) {
+                add_arg(current_file, NULL);
+                add_file(command, current_file);
+            }
+            current_token = current_token -> next;        
         }
-        current_token = current_token -> next;        
+        return command;
     }
-
-
-    return command;
+    return NULL;
 }
 
 /**
