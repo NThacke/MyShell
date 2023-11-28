@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -fsanitize=address
+CFLAGS = -fsanitize=address -g
 
 all: mysh pwd which
 
