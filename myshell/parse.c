@@ -183,6 +183,7 @@ struct LinkedList * tokenize(char * buffer) {
         index++;
     }
 
+    free(word); //MEMORY LEAK FIX. word always got malloced at the end of a token, including the last token! We never freed it, until now.
     return tokens;
 }
 
