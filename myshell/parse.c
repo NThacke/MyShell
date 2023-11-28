@@ -292,10 +292,14 @@ struct command * transform(struct LinkedList * tokens) {
                 default : {
                     //nothing; the current token is simply an argument to the current file
                     if(not_redirect(current_token)) {
-
+                
                         if(strcmp(current_file -> name, current_token -> value) == 0) {
                             char * filename = file_name(current_file -> name);
                             add_arg(current_file, filename);
+                            if(current_token -> value != current_file -> name) { //Since we added the argument /filename/ to the file struct, the current_token -> value will not be freed, and must be freed here. But only if the token and filename are not the same pointer.
+                                free(current_token -> value);
+                            }
+                            current_token -> value = filename;
                         }
                         else {
                             add_arg(current_file, current_token -> value);
