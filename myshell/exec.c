@@ -329,12 +329,12 @@ void determine_paths(struct command * command) {
             continue;
         }
         else {//modify the path to be a UNIX command
-             //we no longer refer to this, we overwrite it, but need to still free this address
             printf("'%s' refers to a unix command\n", file -> name);
-            free(file -> name);
-            file -> name = get_unix_path(file -> args[0]);
-            if(file -> name != NULL) {
-                printf("The path is '%s'\n", file -> name);
+            char * unix_path = get_unix_path(file -> args[0]);
+            if(unix_path != NULL) {
+                printf("The path is '%s'\n", unix_path);
+                free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
+                file -> name = unix_path;
             }
         }
     }
