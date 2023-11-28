@@ -35,4 +35,5 @@ struct file {
 
 struct command * parse(char * buffer);
 void free_struct_command(struct command * c);
+void free_file_struct(struct file * file);
 void traverse_command(struct command * command);
