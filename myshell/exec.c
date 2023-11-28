@@ -442,10 +442,10 @@ int execute(struct command * command) {
     else {
         //no executable program
         if(command -> size > 0) {
+            free(arr);
             struct file * file = command -> files[0];
 
             if(file -> name != NULL) {
-                free(arr);
                 if(strcmp(file -> name, "exit") == 0) {
                     special_free(command);
                     return EXIT_SUCCESS;
