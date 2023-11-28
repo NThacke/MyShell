@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <string.h>
-#include "parser.h"
+#include "parse.h"
 #include <regex.h>
 #include <dirent.h>
 #include "which.h"
@@ -12,7 +12,7 @@
 #define TRUE 0
 #define FALSE 1
 
-
+char init_dir[PATH_MAX];
 
 
 /* Changes directory
@@ -34,8 +34,13 @@ void pwd_builtin() {
     }
 }
 
+char * inital_directory(void) {
+    return init_dir;
+}
+
 
 int main(int argc, char *argv[]){
+    getcwd(init_dir, sizeof(init_dir));
     if (argc > 1) {
         // Batch mode
         printf("Running in batch mode");
@@ -57,26 +62,24 @@ int main(int argc, char *argv[]){
             user_input[strcspn(user_input, "\n")] = 0;
             getcwd(cwd, sizeof(cwd));
             
-            struct command * command = parse(cwd, user_input, 5120);
-            
-            clean(command);
+            struct command * command = parse(user_input);
 
-            traverse_command(command);
-
-            int value = execute(command);
-            if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
-                printf("Exiting...\n");
-                free(command);
-                exit(EXIT_SUCCESS);
+            if(command == NULL) {
+                printf("Command not recognized\n");
             }
             else {
-                free(command);
+                traverse_command(command);
 
-                memset(user_input, 0, sizeof user_input);
-                // Set up next iteration
-                printf("mysh> ");
+                int value = execute(command);
+                free_struct_command(command);
+                if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
+                    return value;
+                }
             }
+            memset(user_input, 0, sizeof user_input);
+            // Set up next iteration
+            printf("mysh> ");
         }
-   }
+    }
     return 0;
 }

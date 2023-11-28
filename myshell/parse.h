@@ -1,6 +1,16 @@
-#include <stdlib.h>
+struct command {
+    /**
+     * @brief A series of files which consist of the command.
+     */
+    struct file ** files;
+    /**
+     * @brief The number of files contained within files.
+     */
+    int size;
+};
 
 struct file {
+
     /**
      * @brief The name of this file.
      */
@@ -22,25 +32,8 @@ struct file {
      */
     char * input;
 };
-/**
- * @brief A parsed command from the command-line.
- * 
- */
-struct command {
-    /**
-     * @brief A series of files which consist of the command.
-     */
-    struct file ** files;
-    /**
-     * @brief The number of files contained within files.
-     */
-    int size;
-};
 
+struct command * parse(char * buffer);
 void free_struct_command(struct command * c);
-
-struct command * parse(char * current_dir, char * buffer, size_t size);
-
+void free_file_struct(struct file * file);
 void traverse_command(struct command * command);
-
-void clean(struct command * command);

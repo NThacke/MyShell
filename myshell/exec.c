@@ -1,63 +1,19 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "parser.h"
+#include "parse.h"
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "myshell.h"
+#include <sys/wait.h>
+#include <limits.h>
 
 
-#define TRUE 0
-#define FALSE 1
+#define TRUE 1
+#define FALSE 0
 
 
-/**
- * @brief Determines whether the given file refernces a built-in command, such as "pwd", "which", or "cd". Returns true (0) if any of them are true.
- * 
- * @param file 
- * @return int 
- */
-int built_in(struct file * file) {
-    char * name = file -> name;
-    if(strcmp(name, "which") == 0) {
-        return TRUE;
-    }
-    if(strcmp(name, "pwd") == 0) {
-        return TRUE;
-    }
-    if(strcmp(name, "cd") == 0) {
-        return TRUE;
-    }
-    if(strcmp(name, "exit") == 0) {
-        return TRUE;
-    }
-    // return strcmp(name, "which") || strcmp(name, "pwd") || strcmp(name, "cd") || strcmp(name, "exit");
-    return FALSE;
-}
-/**
- * @brief Executes the given file, which must be a built-in command.
- * 
- * @param file 
- */
-int execute_built_in(struct file * file) {
-    if(built_in(file) == 0) { //robust checking
 
-        char * name = file -> name;
-        if(strcmp(name, "exit") == 0) {
-            printf("goodbye world\n");
-            return EXIT_SUCCESS;
-        }
-    }
-    return -1;
-}
-
-char ** get_args(struct file * file) {
-    char ** args = malloc( (file->size+1) * sizeof(char *));
-    for(int i = 0; i<file -> size; i++) {
-        args[i] = file -> args[i];
-    }
-    args[file->size] = NULL;
-    return args;
-}
 
 /**
  * @brief Determines and returns the number of processes which must be initated to execute the given command.
@@ -133,18 +89,17 @@ void execute_pipe(struct file * file1, struct file * file2) {
         int fd_out = STDOUT_FILENO;
         if(file2 -> output != NULL) {
             printf("Program '%s' has output to file '%s'\n", file2->name, file2 -> output);
-            fd_out = open(file2 -> output, O_WRONLY);
+            fd_out = open(file2 -> output, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP);
             if(fd_out < 0) {
                 perror("Could not open output file");
-                return;
+                exit(EXIT_FAILURE);         //end the current process
             }
             dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
             close(fd_out);
         }
 
         //fd_out can be refered as the output for this process.
-        char ** args = get_args(file2);
-        execv(file2 -> name, args);
+        execv(file2 -> name, file2->args);
 
         perror("Exec failed"); //exec will never return if successful
         return;
@@ -162,12 +117,11 @@ void execute_pipe(struct file * file1, struct file * file2) {
             fd_in = open(file1 -> input, O_RDONLY);
             if(fd_in < 0) {
                 perror("Could not open input file");
-                return;
+                exit(EXIT_FAILURE);         //end the current process
             }
             dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
         }
-        char ** args = get_args(file1);
-        execv(file1 -> name, args);
+        execv(file1 -> name, file1 -> args);
 
         perror("Exec failed");
         return;
@@ -204,7 +158,7 @@ void execute_file(struct file * file) {
         fd_in = open(file -> input, O_RDONLY);
         if(fd_in < 0) {
             perror("Could not open input file");
-            return;
+            exit(EXIT_FAILURE);         //end the current process
         }
         dup2(fd_in, STDIN_FILENO); //designate fd_in as the same file descriptor as STDIN ; i.e., fd_in is now the intput file.
     }
@@ -212,16 +166,20 @@ void execute_file(struct file * file) {
     //Redirect STDOUT if file has an output other than STDOUT.
     int fd_out = STDOUT_FILENO;
     if(file -> output != NULL) {
-        fd_out = open(file -> output, O_WRONLY);
+        fd_out = open(file -> output, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP);
         if(fd_out < 0) {
             perror("Could not open output file");
-            return;
+            exit(EXIT_FAILURE);         //end the current process
         }
         dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
     }
 
-    char ** args = get_args(file); //change this !! Args will be malloced and must be freed, but execv never returns (so we can't ever free it). Solution : Reference file -> args as the paramter to exeecv. This means we must have file -> args have a NULL paramtere at the tail end. This can be done inside clean() within the parser file.
-    execv(file -> name, args);
+    printf("Executing program '%s'\n", file->name);
+    execv(file -> name, file -> args);
+    free_file_struct(file);
+    printf("Execution failed\n");
+    perror("Execv failed");
+    exit(EXIT_FAILURE);
 }
 void exec_file(struct file * file) {
     pid_t pid;
@@ -236,6 +194,124 @@ void exec_file(struct file * file) {
     }
     else { //parent process
         waitpid(pid, &status, 0);
+    }
+}
+
+char * new_allocation(char * buffer) {
+    printf("Allocaitng new space for '%s'\n", buffer);
+    char * new = malloc( (strlen(buffer) + 1) * sizeof(char));
+    int index = 0;
+    while(index < strlen(buffer)) {
+        new[index] = buffer[index];
+        index++;
+    }
+    new[index] = '\0';
+    printf("New string is '%s'\n", new);
+    return new;
+}
+char * get_unix_path(char * filename) {
+
+    char* paths[] = {"/usr/local/bin/", "/usr/bin/", "/bin/"};
+    char* fullPath = NULL;
+    
+    for (int i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i) {
+        size_t pathLen = strlen(paths[i]);
+        size_t filenameLen = strlen(filename);
+        size_t fullPathLen = pathLen + filenameLen + 1; // +1 for null terminator
+
+        fullPath = (char*)malloc((fullPathLen) * sizeof(char));
+        if (fullPath == NULL) {
+            perror("Memory allocation failed");
+            return NULL;
+        }
+
+        strcpy(fullPath, paths[i]);
+        strcat(fullPath, filename);
+
+        // Check if file exists
+        if (access(fullPath, F_OK) != -1) {
+            return fullPath;
+        }
+
+        free(fullPath);
+    }
+
+    //return newly allocated array; double free occurs because of this!
+    return NULL;
+    // return new_allocation(filename);
+}
+
+int slash(char * buffer) {
+    int index = 0;
+    while(buffer[index] != '\0') {
+        if(buffer[index] == '/') {
+            return TRUE;
+        }
+        index++;
+    }
+    return FALSE;
+}
+
+char* appendFilenameToDirectory(const char* directory, char* filename) {
+    size_t dirLength = strlen(directory);
+    size_t fileLength = strlen(filename);
+
+    // Allocate memory for the result path
+    char* resultPath = (char*)malloc((dirLength + fileLength + 2) * sizeof(char)); // +2 for '/' and '\0'
+    if (resultPath == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
+    }
+
+    // Copy the directory path to the resultPath
+    strcpy(resultPath, directory);
+
+    // Ensure there's a directory separator at the end of the directory path
+    if (resultPath[dirLength - 1] != '/' && resultPath[dirLength - 1] != '\\') {
+        strcat(resultPath, "/");
+    }
+
+    // Append the filename to the resultPath
+    strcat(resultPath, filename);
+
+    return resultPath;
+}
+
+int built_in_file_name(char * buffer) {
+    return strcmp(buffer, "cd") == 0 || strcmp(buffer, "pwd") == 0 || strcmp(buffer, "which") == 0;
+}
+int is_exit(char * buffer) {
+    return strcmp(buffer, "exit") == 0;
+}
+void determine_paths(struct command * command) {
+    printf("Determining paths....\n");
+    for(int i = 0; i<command->size; i++) {
+        struct file * file = command -> files[i];
+
+        if(slash(file -> name)) {
+            printf("'%s' contains a slash\n", file -> name);
+            continue; //don't modify anything; the given path is what the user wants
+        }
+        else if(built_in_file_name(file -> args[0])) { //modify the path to be under our built-ins
+            // printf("'%s' is a built-in\n", file -> args[0]);
+            // printf("The original working directory was '%s'\n", inital_directory());
+            char * path = appendFilenameToDirectory(inital_directory(), file -> args[0]);
+            free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
+            file -> name = path;
+        }
+        else if(is_exit(file->name)){ //do nothing, this is exit command
+            printf("'%s' is exit command\n", file -> name);
+            continue;
+        }
+        else {//modify the path to be a UNIX command
+             //we no longer refer to this, we overwrite it, but need to still free this address
+            printf("'%s' refers to a unix command\n", file -> name);
+            free(file -> name);
+            file -> name = get_unix_path(file -> args[0]);
+            if(file -> name != NULL) {
+                printf("The path is '%s'\n", file -> name);
+            }
+        }
     }
 }
 /**
@@ -259,7 +335,7 @@ int * deteremine_program_indecies(struct command * command) {
 
     for(int i = 0; i<command -> size; i++) {
         struct file * file = command -> files[i];
-        if(access(file -> name, X_OK) == TRUE) {
+        if(access(file -> name, X_OK) == 0) {
             //the file is executable, and is thus a program
             arr[index] = i;
             index++;
@@ -271,6 +347,8 @@ int * deteremine_program_indecies(struct command * command) {
 int execute(struct command * command) {
     
     printf("Execute\n");
+
+    determine_paths(command);
 
     int * arr = deteremine_program_indecies(command);
     if(arr[0] >= 0) {
@@ -293,12 +371,17 @@ int execute(struct command * command) {
         //no executable program
         if(command -> size > 0) {
             struct file * file = command -> files[0];
-            if(strcmp(file -> name, "exit") == 0) {
-                return EXIT_SUCCESS;
+
+            if(file -> name != NULL) {
+                if(strcmp(file -> name, "exit") == 0) {
+                    free(arr);
+                    return EXIT_SUCCESS;
+                }
             }
+            printf("File not recognized\n");
         }
     }
-    printf("Exiting execute()...\n");
+    // printf("Exiting execute()...\n");
     free(arr);
     return -1;
 }
