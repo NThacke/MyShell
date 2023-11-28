@@ -104,6 +104,7 @@ struct command * new_command_struct() {
 void free_file_struct(struct file * file) {
     if(file != NULL) {
         for(int i = 0; i<file->size; i++) {
+            printf("Freeing '%s' at address '%p'\n", file -> args[i], file -> args[i]);
             free(file->args[i]);
         }
         //file -> name is same as file -> args[0] by definition; no need to free it
