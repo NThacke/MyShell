@@ -317,6 +317,7 @@ void determine_paths(struct command * command) {
         }
         else if(built_in_file_name(file -> args[0])) { //modify the path to be under our built-ins
             
+            printf("'%s' is a built-in\n", file -> args[0]);
             char * dir = appendFilenameToDirectory(inital_directory(), "built_ins");
             char * path = appendFilenameToDirectory(dir, file -> args[0]);
             free(dir);                                              //dir is malloced on heap and doesn't get referenced any further
@@ -407,6 +408,7 @@ int execute(struct command * command) {
                 }
             }
             printf("File not recognized\n");
+            return -1;
         }
     }
     // printf("Exiting execute()...\n");
