@@ -277,6 +277,29 @@ char* appendFilenameToDirectory(const char* directory, char* filename) {
     return resultPath;
 }
 
+/**
+ * This function serves as the cd command.
+ * 
+ * We cannot have cd be its own executable file, as executables get run in their own process, and as such, changes to the directory only reflect in that process, and NOT the process that the shell runs in.
+*/
+int cd(int argc, char ** argv) {
+    if(argc < 2) {
+        if(chdir("/") != 0) {
+            printf(" cd : chdir() failed\n");
+            printf("changed directory successfully\n");
+        }
+    }
+    else if(argc == 2) {
+        if(chdir(argv[1]) != 0) {
+            printf(" cd: chdir() failed\n");
+        }
+        printf("changed directory successfully\n");
+    }
+    else {
+        printf(" cd: too many arguments\n");
+    }
+}
+
 int built_in_file_name(char * buffer) {
     return strcmp(buffer, "cd") == 0 || strcmp(buffer, "pwd") == 0 || strcmp(buffer, "which") == 0;
 }
@@ -293,9 +316,10 @@ void determine_paths(struct command * command) {
             continue; //don't modify anything; the given path is what the user wants
         }
         else if(built_in_file_name(file -> args[0])) { //modify the path to be under our built-ins
-            // printf("'%s' is a built-in\n", file -> args[0]);
-            // printf("The original working directory was '%s'\n", inital_directory());
-            char * path = appendFilenameToDirectory(inital_directory(), file -> args[0]);
+            
+            char * dir = appendFilenameToDirectory(inital_directory(), "built_ins");
+            char * path = appendFilenameToDirectory(dir, file -> args[0]);
+            free(dir);                                              //dir is malloced on heap and doesn't get referenced any further
             free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
             file -> name = path;
         }
@@ -373,9 +397,13 @@ int execute(struct command * command) {
             struct file * file = command -> files[0];
 
             if(file -> name != NULL) {
+                free(arr);
                 if(strcmp(file -> name, "exit") == 0) {
-                    free(arr);
                     return EXIT_SUCCESS;
+                }
+                if(strcmp(file -> args[0], "cd") == 0) {
+                    cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
+                    return -1;
                 }
             }
             printf("File not recognized\n");
