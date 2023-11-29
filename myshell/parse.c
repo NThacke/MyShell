@@ -141,6 +141,7 @@ struct file * new_file_struct() {
 }
 
 char ** get_wildcard(char * wildcard) {
+    printf("Inside get_wildcard\n");
     // Splitting the wildcard into directory path and file pattern
     char* directory = NULL;
     char* pattern = NULL;
@@ -163,6 +164,10 @@ char ** get_wildcard(char * wildcard) {
         return NULL;
     }
 
+    if (strlen(directory) == 0) {
+        free(directory);
+        directory = strdup(".");
+    }
     // Open the directory and search for matching files
     DIR* dir = opendir(directory);
     if (dir == NULL) {
@@ -170,7 +175,6 @@ char ** get_wildcard(char * wildcard) {
         free(pattern);
         return NULL;
     }
-
     struct dirent* entry;
     char** matching_files = NULL;
     size_t num_files = 0;
@@ -178,27 +182,44 @@ char ** get_wildcard(char * wildcard) {
     size_t pattern_len = strlen(pattern);
     size_t directory_len = strlen(directory);
 
-    while ((entry = readdir(dir)) != NULL) {
-        size_t entry_len = strlen(entry->d_name);
-        if (entry_len >= pattern_len) {
-            int match = 1;
-            if (strncmp(entry->d_name, pattern, pattern_len) == 0) {
-                if (pattern[0] != '*' && strncmp(entry->d_name + entry_len - pattern_len, pattern, pattern_len) != 0) {
-                    match = 0;
-                }
-            } else if (pattern[pattern_len - 1] != '*' && strncmp(entry->d_name + entry_len - pattern_len + 1, pattern + 1, pattern_len - 1) != 0) {
-                match = 0;
-            }
-            
-            if (match) {
+    if (strlen(pattern) == 0) {
+        // Match all files within the directory
+        while ((entry = readdir(dir)) != NULL) {
+            if (entry->d_name[0] != '.') {  // Ignore hidden files, '.' and '..'
                 // Allocate memory for the file name only
+                printf("Entry '%s'\n", entry->d_name);
                 char* filename = strdup(entry->d_name);
 
                 // Reallocate memory for the array of file names
                 matching_files = (char**)realloc(matching_files, (num_files + 1) * sizeof(char*));
                 matching_files[num_files] = filename;
                 num_files++;
+            }
+        }
+    }
+    else {
+        while ((entry = readdir(dir)) != NULL) {
+            size_t entry_len = strlen(entry->d_name);
+            if (entry_len >= pattern_len && entry->d_name[0] != '.') {
+                int match = 1;
+                if (strncmp(entry->d_name, pattern, pattern_len) == 0) {
+                    if (pattern[0] != '*' && strncmp(entry->d_name + entry_len - pattern_len, pattern, pattern_len) != 0) {
+                        match = 0;
+                    }
+                } else if (pattern[pattern_len - 1] != '*' && strncmp(entry->d_name + entry_len - pattern_len + 1, pattern + 1, pattern_len - 1) != 0) {
+                    match = 0;
+                }
+                
+                if (match) {
+                    // Allocate memory for the file name only
+                    char* filename = strdup(entry->d_name);
 
+                    // Reallocate memory for the array of file names
+                    matching_files = (char**)realloc(matching_files, (num_files + 1) * sizeof(char*));
+                    matching_files[num_files] = filename;
+                    num_files++;
+
+                }
             }
         }
     }
