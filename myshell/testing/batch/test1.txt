@@ -1,0 +1,7 @@
+echo hello world!
+echo let's do some testing!
+echo ---------------------
+echo ~    Test 1         ~
+echo ---------------------
+echo 'cat ./testing/batch/test1.txt'
+cat ./testing/batch/test1.txt
