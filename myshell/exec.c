@@ -400,7 +400,7 @@ void special_free(struct command * command) {
         struct file * file1 = command -> files[0];
         struct file * file2 = command -> files[1];
 
-        if(file1 -> input != NULL) {
+        if(file1 -> input != NULL && file1 -> input != file2 -> name) {
             if(TESTING) {
                 printf("Freeing '%s'\n", file1 -> input);
             }
@@ -451,22 +451,12 @@ int execute(struct command * command) {
         struct file * file1 = command -> files[arr[0]];
         struct file * file2 = command -> files[arr[1]];
         exec_pipe(file1, file2);
-        if(file1 -> input != NULL) {
-            free(file1 -> input);
-        }
-        if(file2 -> output != NULL) {
-            free(file2 -> output);
-        }
+        special_free(command);
     }
     else if(arr[0] >= 0) { //one executable program
         struct file * file1 = command -> files[arr[0]];
         exec_file(file1);
-        if(file1 -> input != NULL) {
-            free(file1 -> input);
-        }
-        if(file1 -> output != NULL) {
-            free(file1 -> output);
-        }
+        special_free(command);
     }
     else {
         //no executable program
