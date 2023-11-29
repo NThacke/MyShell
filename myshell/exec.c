@@ -9,7 +9,7 @@
 #include <limits.h>
 
 
-#define TESTING 1
+#define TESTING 0
 
 /**
  * @brief Determines and returns the number of processes which must be initated to execute the given command.
