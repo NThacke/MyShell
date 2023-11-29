@@ -402,10 +402,6 @@ void special_free(struct command * command) {
         struct file * file1 = command -> files[0];
         struct file * file2 = command -> files[1];
 
-        printf("Traversing command\n");
-        traverse_command(command);
-        printf("Done traversing\n");
-
         if(file1 -> input != NULL && file1 -> input != file2 -> name) {
             if(TESTING) {
                 printf("Freeing '%s'\n", file1 -> input);
