@@ -12,10 +12,10 @@ pwd: ./built_ins/pwd.c
 which: ./built_ins/which.c
 	$(CC) $(CLFAGS) ./built_ins/which.c -o ./built_ins/which
 
-middle_man : ./testing/executables/middle_man.c
+middle_man: ./testing/executables/middle_man.c
 	$(CC) $(CLFAGS) ./testing/executables/middle_man.c -o ./testing/executables/middle_man
 
-output_args : ./testing/executables/output_args.c
+output_args: ./testing/executables/output_args.c
 	$(CC) $(CLFAGS) ./testing/executables/output_args.c -o ./testing/executables/output_args
 
 .PHONY: clean
