@@ -9,11 +9,7 @@
 #include <limits.h>
 
 
-#define TRUE 1
-#define FALSE 0
-
-
-
+#define TESTING 0
 
 /**
  * @brief Determines and returns the number of processes which must be initated to execute the given command.
@@ -88,7 +84,9 @@ void execute_pipe(struct file * file1, struct file * file2) {
         //Redirect STDOUT if file2 has an output other than STDOUT.
         int fd_out = STDOUT_FILENO;
         if(file2 -> output != NULL) {
-            printf("Program '%s' has output to file '%s'\n", file2->name, file2 -> output);
+            if(TESTING) {
+                printf("Program '%s' has output to file '%s'\n", file2->name, file2 -> output);
+            }
             fd_out = open(file2 -> output, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP);
             if(fd_out < 0) {
                 perror("Could not open output file");
@@ -173,11 +171,14 @@ void execute_file(struct file * file) {
         }
         dup2(fd_out, STDOUT_FILENO); //designate fd_out as the same file descriptor as STDOUT ; i.e., fd_out is now the output file.
     }
-
-    printf("Executing program '%s'\n", file->name);
+    if(TESTING) {
+        printf("Executing program '%s'\n", file->name);
+    }
     execv(file -> name, file -> args);
     free_file_struct(file);
-    printf("Execution failed\n");
+    if(TESTING) {
+        printf("Execution failed\n");
+    }
     perror("Execv failed");
     exit(EXIT_FAILURE);
 }
@@ -286,14 +287,12 @@ int cd(int argc, char ** argv) {
     if(argc < 2) {
         if(chdir("/") != 0) {
             printf(" cd : chdir() failed\n");
-            printf("changed directory successfully\n");
         }
     }
     else if(argc == 2) {
         if(chdir(argv[1]) != 0) {
             printf(" cd: chdir() failed\n");
         }
-        printf("changed directory successfully\n");
     }
     else {
         printf(" cd: too many arguments\n");
@@ -307,17 +306,22 @@ int is_exit(char * buffer) {
     return strcmp(buffer, "exit") == 0;
 }
 void determine_paths(struct command * command) {
-    printf("Determining paths....\n");
+    if(TESTING) {
+        printf("Determining paths....\n");
+    }
     for(int i = 0; i<command->size; i++) {
         struct file * file = command -> files[i];
 
         if(slash(file -> name)) {
-            printf("'%s' contains a slash\n", file -> name);
+            if(TESTING) {
+                printf("'%s' contains a slash\n", file -> name);
+            }
             continue; //don't modify anything; the given path is what the user wants
         }
         else if(built_in_file_name(file -> args[0])) { //modify the path to be under our built-ins
-            
-            printf("'%s' is a built-in\n", file -> args[0]);
+            if(TESTING) {
+                printf("'%s' is a built-in\n", file -> args[0]);
+            }
             char * dir = appendFilenameToDirectory(inital_directory(), "built_ins");
             char * path = appendFilenameToDirectory(dir, file -> args[0]);
             free(dir);                                              //dir is malloced on heap and doesn't get referenced any further
@@ -325,14 +329,20 @@ void determine_paths(struct command * command) {
             file -> name = path;
         }
         else if(is_exit(file->name)){ //do nothing, this is exit command
-            printf("'%s' is exit command\n", file -> name);
+            if(TESTING) {
+                printf("'%s' is exit command\n", file -> name);
+            }
             continue;
         }
         else {//modify the path to be a UNIX command
-            printf("'%s' refers to a unix command\n", file -> name);
+            if(TESTING) {
+                printf("'%s' refers to a unix command\n", file -> name);
+            }
             char * unix_path = get_unix_path(file -> args[0]);
             if(unix_path != NULL) {
-                printf("The path is '%s'\n", unix_path);
+                if(TESTING) {
+                    printf("The path is '%s'\n", unix_path);
+                }
                 free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
                 file -> name = unix_path;
             }
@@ -364,7 +374,9 @@ int * deteremine_program_indecies(struct command * command) {
             //the file is executable, and is thus a program
             arr[index] = i;
             index++;
-            printf("A executable program is '%s'\n", file -> name);
+            if(TESTING) {
+                printf("A executable program is '%s'\n", file -> name);
+            }
         }
     }
     return arr;
@@ -382,31 +394,43 @@ void special_free(struct command * command) {
         }
     }
     if(command -> size ==2 ) { // piping
-        printf("Size is 2\n");
+        if(TESTING) {
+            printf("Size is 2\n");
+        }
         struct file * file1 = command -> files[0];
         struct file * file2 = command -> files[1];
 
         if(file1 -> input != NULL) {
-            printf("Freeing '%s'\n", file1 -> input);
+            if(TESTING) {
+                printf("Freeing '%s'\n", file1 -> input);
+            }
             free(file1 -> input);
         }
         if(file1 -> output != NULL && file1 -> output != file2 -> name) {
-            printf("Freeing '%s'\n", file1 -> output);
+            if(TESTING) {
+                printf("Freeing '%s'\n", file1 -> output);
+            }
             free(file1 -> output);
         }
         if(file2 -> output != NULL) {
-            printf("Freeing '%s'\n", file2 -> output);
+            if(TESTING) {
+                printf("Freeing '%s'\n", file2 -> output);
+            }
             free(file2 -> output);
         }
         if(file2 -> input != NULL && file2 -> input != file1 -> name) {
-            printf("Freeing '%s'\n", file2 -> input);
+            if(TESTING) {
+                printf("Freeing '%s'\n", file2 -> input);
+            }
             free(file2 -> input);
         }
     }
 }
 int execute(struct command * command) {
     
-    printf("Execute\n");
+    if(TESTING) {
+        printf("Execute\n");
+    }
     if(command -> size > 2) {
         printf("Too many executables; mysh can only handle at most one pipe at a time.\n");
         return -1;
@@ -414,11 +438,13 @@ int execute(struct command * command) {
     determine_paths(command);
 
     int * arr = deteremine_program_indecies(command);
-    if(arr[0] >= 0) {
-        printf("The first program index is '%d' and is the program '%s'\n", arr[0], command -> files[arr[0]] -> name);
-    }
-    if(arr[1] >= 0) {
-        printf("The second program index is '%d' and is the program '%s'\n", arr[1], command -> files[arr[1]] -> name);
+    if(TESTING) {
+        if(arr[0] >= 0) {
+            printf("The first program index is '%d' and is the program '%s'\n", arr[0], command -> files[arr[0]] -> name);
+        }
+        if(arr[1] >= 0) {
+            printf("The second program index is '%d' and is the program '%s'\n", arr[1], command -> files[arr[1]] -> name);
+        }
     }
 
     if(arr[0] >= 0 && arr[1] >= 0) { //two programs, we are piping!

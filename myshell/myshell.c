@@ -13,6 +13,8 @@
 #define TRUE 0
 #define FALSE 1
 
+#define TESTING 0
+
 #define INITIAL_BUFFER_SIZE 1024
 #define BUFFER_INCREMENT 1024
 
@@ -43,7 +45,9 @@ char * inital_directory(void) {
 }
 
 int processBuffer(char *buffer) {
-    printf("Buffer is '%s'\n", buffer);
+    if(TESTING) {
+        printf("Buffer is '%s'\n", buffer);
+    }
     struct command * command = parse(buffer);
     int value = execute(command);
     free_struct_command(command);
@@ -117,7 +121,6 @@ int main(int argc, char *argv[]){
     getcwd(init_dir, sizeof(init_dir));
     if (argc > 1) {
         // Batch mode
-        printf("Running in batch mode\n");
         batch(argv[1]);
     }
     else {
