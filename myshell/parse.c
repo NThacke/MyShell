@@ -6,11 +6,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
+#include "myshell.h"
 
-#define TRUE 1
-#define FALSE 0
-
-#define TESTING TRUE
+#define TESTING 0
 
 struct command {
     /**
@@ -72,15 +70,17 @@ struct file {
 };
 
 void traverseFile(struct file * file) {
-    printf("------------\n");
-    printf("File name : '%s'\n", file -> name);
-    printf("File input : '%s'\n", file -> input);
-    printf("File output : '%s'\n", file -> output);
-    printf("File arguments ... \n");
-    for(int i = 0; i<file -> size; i++) {
-        printf("'%s'\n", file -> args[i]);
+    if(TESTING) {
+        printf("------------\n");
+        printf("File name : '%s'\n", file -> name);
+        printf("File input : '%s'\n", file -> input);
+        printf("File output : '%s'\n", file -> output);
+        printf("File arguments ... \n");
+        for(int i = 0; i<file -> size; i++) {
+            printf("'%s'\n", file -> args[i]);
+        }
+        printf("------------\n");   
     }
-    printf("------------\n");   
 }
 
 void traverse_command(struct command * command) {
@@ -106,7 +106,9 @@ struct command * new_command_struct() {
 void free_file_struct(struct file * file) {
     if(file != NULL) {
         for(int i = 0; i<file->size; i++) {
-            printf("Freeing '%s' at address '%p'\n", file -> args[i], file -> args[i]);
+            if(TESTING) {
+                printf("Freeing '%s' at address '%p'\n", file -> args[i], file -> args[i]);
+            }
             free(file->args[i]);
         }
         free(file -> name);
@@ -141,7 +143,9 @@ struct file * new_file_struct() {
 }
 
 char ** get_wildcard(char * wildcard) {
-    printf("Inside get_wildcard\n");
+    if(TESTING) {
+        printf("Inside get_wildcard\n");
+    }
     // Splitting the wildcard into directory path and file pattern
     char* directory = NULL;
     char* pattern = NULL;
@@ -187,7 +191,9 @@ char ** get_wildcard(char * wildcard) {
         while ((entry = readdir(dir)) != NULL) {
             if (entry->d_name[0] != '.') {  // Ignore hidden files, '.' and '..'
                 // Allocate memory for the file name only
-                printf("Entry '%s'\n", entry->d_name);
+                if(TESTING) {
+                    printf("Entry '%s'\n", entry->d_name);
+                }
                 char* filename = strdup(entry->d_name);
 
                 // Reallocate memory for the array of file names

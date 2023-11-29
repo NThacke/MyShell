@@ -7,9 +7,16 @@
 #include <regex.h>
 #include <dirent.h>
 #include "exec.h"
+#include <fcntl.h>
+
 
 #define TRUE 0
 #define FALSE 1
+
+#define TESTING 0
+
+#define INITIAL_BUFFER_SIZE 1024
+#define BUFFER_INCREMENT 1024
 
 char init_dir[PATH_MAX];
 
@@ -37,12 +44,84 @@ char * inital_directory(void) {
     return init_dir;
 }
 
+int processBuffer(char *buffer) {
+    if(TESTING) {
+        printf("Buffer is '%s'\n", buffer);
+    }
+    struct command * command = parse(buffer);
+    int value = execute(command);
+    free_struct_command(command);
+    if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
+        printf("Exiting ... \n");
+        return value;
+    }
+
+}
+
+void resetBuffer(char **buffer, int *totalRead, int *bufferSize) {
+    free(*buffer);
+    *buffer = (char *)malloc(INITIAL_BUFFER_SIZE * sizeof(char));
+    if (*buffer == NULL) {
+        fprintf(stderr, "Memory allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+    (*buffer)[0] = '\0'; // Ensure the buffer starts with a null terminator
+    *totalRead = 0;
+    *bufferSize = INITIAL_BUFFER_SIZE;
+}
+
+void batch(char * filename) {
+    int file = open(filename, O_RDONLY);
+    if (file == -1) {
+        fprintf(stderr, "Error opening file %s\n", filename);
+        return;
+    }
+
+    char *buffer = (char *)malloc(INITIAL_BUFFER_SIZE * sizeof(char));
+    if (buffer == NULL) {
+        fprintf(stderr, "Memory allocation error\n");
+        close(file);
+        return;
+    }
+    buffer[0] = '\0'; // Initialize buffer with a null terminator
+
+    ssize_t bytesRead;
+    int totalRead = 0;
+    int bufferSize = INITIAL_BUFFER_SIZE;
+    char currentChar;
+    while ((bytesRead = read(file, &currentChar, 1)) > 0) {
+        if (currentChar != '\n') {
+            if (totalRead >= bufferSize - 1) {
+                bufferSize += BUFFER_INCREMENT;
+                buffer = realloc(buffer, bufferSize * sizeof(char));
+                if (buffer == NULL) {
+                    fprintf(stderr, "Memory allocation error\n");
+                    close(file);
+                    return;
+                }
+            }
+            buffer[totalRead++] = currentChar;
+        } else {
+            buffer[totalRead] = '\0'; // Ensure the buffer ends with a null terminator
+            processBuffer(buffer);
+            resetBuffer(&buffer, &totalRead, &bufferSize);
+        }
+    }
+
+    if (totalRead > 0) {
+        buffer[totalRead] = '\0'; // Ensure the last line ends with a null terminator
+        processBuffer(buffer);
+    }
+
+    free(buffer);
+    close(file);
+}
 
 int main(int argc, char *argv[]){
     getcwd(init_dir, sizeof(init_dir));
     if (argc > 1) {
         // Batch mode
-        printf("Running in batch mode");
+        batch(argv[1]);
     }
     else {
         // Set a 5kb buffer which is equal to 5120 chars

@@ -1,0 +1,5 @@
+echo ---------------------
+echo ~    Test 2         ~
+echo ---------------------
+echo './testing/executables/output_args arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg 10'
+./testing/executables/output_args arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10
