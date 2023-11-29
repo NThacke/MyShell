@@ -42,10 +42,16 @@ char * inital_directory(void) {
     return init_dir;
 }
 
-void processBuffer(const char *buffer) {
-    printf("%s", buffer);
-    // Add your processing logic here
-    // For example: Some_function_that_uses_buffer(buffer);
+int processBuffer(char *buffer) {
+    printf("Buffer is '%s'\n", buffer);
+    struct command * command = parse(buffer);
+    int value = execute(command);
+    free_struct_command(command);
+    if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
+        printf("Exiting ... \n");
+        return value;
+    }
+
 }
 
 void resetBuffer(char **buffer, int *totalRead, int *bufferSize) {
@@ -92,8 +98,7 @@ void batch(char * filename) {
             }
             buffer[totalRead++] = currentChar;
         } else {
-            buffer[totalRead++] = '\n'; // Include newline in the buffer
-            buffer[totalRead] = '\0';   // Ensure the buffer ends with a null terminator
+            buffer[totalRead] = '\0'; // Ensure the buffer ends with a null terminator
             processBuffer(buffer);
             resetBuffer(&buffer, &totalRead, &bufferSize);
         }
