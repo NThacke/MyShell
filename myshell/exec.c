@@ -407,7 +407,10 @@ void special_free(struct command * command) {
 int execute(struct command * command) {
     
     printf("Execute\n");
-
+    if(command -> size > 2) {
+        printf("Too many executables; mysh can only handle at most one pipe at a time.\n");
+        return -1;
+    }
     determine_paths(command);
 
     int * arr = deteremine_program_indecies(command);
@@ -441,25 +444,29 @@ int execute(struct command * command) {
     }
     else {
         //no executable program
-        if(command -> size > 0) {
-            free(arr);
+        free(arr);
+        if(command -> size == 1) {
             struct file * file = command -> files[0];
-
             if(file -> name != NULL) {
                 if(strcmp(file -> name, "exit") == 0) {
                     special_free(command);
                     return EXIT_SUCCESS;
                 }
-                if(strcmp(file -> args[0], "cd") == 0) {
+                else if(strcmp(file -> args[0], "cd") == 0) {
                     cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
-                    return -1;
+                }
+                else {
+                    printf("File not recognized : '%s'\n", file -> name);
                 }
             }
-            
-            special_free(command);
-            printf("File not recognized\n");
-            return -1;
         }
+        if(command -> size == 2 || command -> size == 0) {
+            for(int i = 0; i < command -> size; i++) {
+                printf("File not recognized : '%s'\n", command -> files[i] -> name);
+            }
+        }
+        special_free(command);
+        return -1;
     }
     // printf("Exiting execute()...\n");
     free(arr);
