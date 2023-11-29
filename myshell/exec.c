@@ -441,10 +441,9 @@ int execute(struct command * command) {
     }
     else {
         //no executable program
-        if(command -> size > 0) {
-            free(arr);
+        free(arr);
+        if(command -> size == 1) {
             struct file * file = command -> files[0];
-
             if(file -> name != NULL) {
                 if(strcmp(file -> name, "exit") == 0) {
                     special_free(command);
@@ -452,14 +451,15 @@ int execute(struct command * command) {
                 }
                 if(strcmp(file -> args[0], "cd") == 0) {
                     cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
-                    return -1;
                 }
             }
-            
-            special_free(command);
-            printf("File not recognized\n");
-            return -1;
+            printf("File not recognized : '%s'\n", file -> name);
         }
+        if(command -> size == 2 || command -> size == 0) {
+            printf("Command not recognized.\n");
+        }
+        special_free(command);
+        return -1;
     }
     // printf("Exiting execute()...\n");
     free(arr);
