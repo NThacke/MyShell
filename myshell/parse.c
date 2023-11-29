@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
-
+#include <dirent.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -140,6 +140,114 @@ struct file * new_file_struct() {
     return file;
 }
 
+char ** get_wildcard(char * wildcard) {
+    // Splitting the wildcard into directory path and file pattern
+    char* directory = NULL;
+    char* pattern = NULL;
+
+    char* asterisk_pos = strchr(wildcard, '*');
+    if (asterisk_pos != NULL) {
+        size_t directory_len = asterisk_pos - wildcard;
+        while (directory_len > 0 && wildcard[directory_len - 1] != '/') {
+            directory_len--;
+        }
+
+        directory = (char*)malloc((directory_len + 1) * sizeof(char));
+        strncpy(directory, wildcard, directory_len);
+        directory[directory_len] = '\0';
+
+        pattern = strdup(asterisk_pos + 1);
+    }
+
+    if (directory == NULL || pattern == NULL) {
+        return NULL;
+    }
+
+    // Open the directory and search for matching files
+    DIR* dir = opendir(directory);
+    if (dir == NULL) {
+        free(directory);
+        free(pattern);
+        return NULL;
+    }
+
+    struct dirent* entry;
+    char** matching_files = NULL;
+    size_t num_files = 0;
+
+    size_t pattern_len = strlen(pattern);
+    size_t directory_len = strlen(directory);
+
+    while ((entry = readdir(dir)) != NULL) {
+        size_t entry_len = strlen(entry->d_name);
+        if (entry_len >= pattern_len) {
+            int match = 1;
+            if (strncmp(entry->d_name, pattern, pattern_len) == 0) {
+                if (pattern[0] != '*' && strncmp(entry->d_name + entry_len - pattern_len, pattern, pattern_len) != 0) {
+                    match = 0;
+                }
+            } else if (pattern[pattern_len - 1] != '*' && strncmp(entry->d_name + entry_len - pattern_len + 1, pattern + 1, pattern_len - 1) != 0) {
+                match = 0;
+            }
+            
+            if (match) {
+                // Allocate memory for the file name only
+                char* filename = strdup(entry->d_name);
+
+                // Reallocate memory for the array of file names
+                matching_files = (char**)realloc(matching_files, (num_files + 1) * sizeof(char*));
+                matching_files[num_files] = filename;
+                num_files++;
+
+            }
+        }
+    }
+
+    closedir(dir);
+    free(directory);
+    free(pattern);
+
+    if (num_files == 0) {
+        free(matching_files);
+        return NULL;
+    }
+
+    // Add a NULL at the end to mark the end of the array
+    matching_files = (char**)realloc(matching_files, (num_files + 1) * sizeof(char*));
+    matching_files[num_files] = NULL;
+
+    return matching_files;
+}
+int contains_asterisk(char * token) {
+    while(*token) {
+        if(*token == '*') {
+            return TRUE;
+        }
+        token++;
+    }
+    return FALSE;
+}
+void insert(struct LinkedList * tokens, char * token) {
+    if(contains_asterisk(token)) {
+        char ** wildcards = get_wildcard(token);
+        if(wildcards == NULL) {
+            add_tail(tokens, token);
+        }
+        else {
+            char ** temp = wildcards;
+            while(*wildcards != NULL) {
+                add_tail(tokens, *wildcards);
+                wildcards++;
+            }
+            free(temp);
+            free(token);
+
+        }
+    }
+    else {
+        add_tail(tokens, token);
+    }
+}
 /**
  * @brief Tokenizes the given buffer into a series of tokens. Note that the given buffer *must* have space-separated tokens. i.e., invoke the space_separate function prior to invocation of this function
  * 
@@ -161,11 +269,14 @@ struct LinkedList * tokenize(char * buffer) {
 
             word = realloc(word, (word_index+1) * sizeof(char));
             word[word_index] = '\0';
-            add_tail(tokens, word);
 
             if(TESTING) {
                 printf("Tokenized the token : '%s'\n", word);
             }
+            
+            insert(tokens, word);
+            // add_tail(tokens, word);
+
 
             //reset the word
             word_size = 256;
