@@ -9,7 +9,7 @@
 #include <limits.h>
 
 
-#define TESTING 0
+#define TESTING 1
 
 /**
  * @brief Determines and returns the number of processes which must be initated to execute the given command.
@@ -343,7 +343,9 @@ void determine_paths(struct command * command) {
                 if(TESTING) {
                     printf("The path is '%s'\n", unix_path);
                 }
-                free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
+                if(command -> size == 1) {
+                    free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
+                }
                 file -> name = unix_path;
             }
         }
@@ -399,6 +401,10 @@ void special_free(struct command * command) {
         }
         struct file * file1 = command -> files[0];
         struct file * file2 = command -> files[1];
+
+        printf("Traversing command\n");
+        traverse_command(command);
+        printf("Done traversing\n");
 
         if(file1 -> input != NULL && file1 -> input != file2 -> name) {
             if(TESTING) {
