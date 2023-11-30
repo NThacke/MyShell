@@ -11,11 +11,6 @@
 #include "myshell.h"
 
 
-#define TRUE 0
-#define FALSE 1
-
-#define TESTING 0
-
 #define INITIAL_BUFFER_SIZE 1024
 #define BUFFER_INCREMENT 1024
 

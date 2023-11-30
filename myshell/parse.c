@@ -442,8 +442,6 @@ struct command * transform(struct LinkedList * tokens) {
 
         while(current_token != NULL) {
 
-            printf("Current token is '%s'\n", current_token -> value);
-
             enum conditional condition = conditional_(current_token -> value);
             if(current_token == tokens -> head) { //conditionals can only be the first token; any other conditional is treated as an argument
                 switch(condition) {
