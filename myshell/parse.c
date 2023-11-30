@@ -586,7 +586,42 @@ int valid(struct LinkedList * tokens) {
     }
     return TRUE;
 }
+void add_padding(char *buffer) {
+    size_t len = strlen(buffer);
+    size_t newLen = len;
 
+    for (size_t i = 0; i < len; i++) {
+        if (buffer[i] == '<' || buffer[i] == '>' || buffer[i] == '|') {
+            newLen += 2; // Increment length for two additional spaces
+        }
+    }
+
+    // Allocate memory for the modified buffer
+    char *modifiedBuffer = (char *)malloc((newLen + 1) * sizeof(char));
+    if (modifiedBuffer == NULL) {
+        printf("Memory allocation failed.\n");
+        return;
+    }
+
+    size_t j = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (buffer[i] == '<' || buffer[i] == '>' || buffer[i] == '|') {
+            modifiedBuffer[j++] = ' '; // Add space before the special character
+            modifiedBuffer[j++] = buffer[i]; // Copy the special character
+            modifiedBuffer[j++] = ' '; // Add space after the special character
+        } else {
+            modifiedBuffer[j++] = buffer[i]; // Copy other characters as they are
+        }
+    }
+
+    modifiedBuffer[j] = '\0'; // Null-terminate the modified buffer
+
+    // Copy the modified buffer back to the original buffer
+    strcpy(buffer, modifiedBuffer);
+
+    // Free the dynamically allocated memory
+    free(modifiedBuffer);
+}
 void separateTokens(char *array) {
     int i = 0;
     int j = 0;
@@ -638,7 +673,7 @@ struct command * parse(char * buffer) {
      * If the token is '>' then we know that the next token following this token will be the standard output for the program.
      * If the token is '|' then we know that the next token following this is indeed another program; the input of which is the output of the current program.
      */
-
+    add_padding(buffer);
     separateTokens(buffer);
     struct LinkedList * tokens = tokenize(buffer);
     if(TESTING) {
