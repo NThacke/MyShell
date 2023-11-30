@@ -9,6 +9,8 @@
 #include "exec.h"
 #include <fcntl.h>
 #include "myshell.h"
+#include <sys/stat.h>
+#include <strings.h>
 
 
 #define INITIAL_BUFFER_SIZE 1024
@@ -40,6 +42,52 @@ char * inital_directory(void) {
     return init_dir;
 }
 
+char * extract_filename(char * path) {
+    if (path == NULL) {
+        return NULL;
+    }
+    char* filename = strrchr(path, '/'); // Find the last occurrence of '/'
+    if (filename == NULL) {
+        // If no '/' found, return the original path
+        return path;
+    }
+
+    // Move the pointer to the character after the last '/'
+    return filename + 1;
+}
+int unix_command(char * inputPath) {
+    if(index(inputPath, '/') != NULL) {
+        const char * directories[] = { "/usr/local/bin/", "/usr/bin/", "/bin/" };
+        char * filename = extract_filename(inputPath);
+        for (int i = 0; i < 3; ++i) {
+            DIR * dir = opendir(directories[i]);
+            if (dir == NULL) {
+                perror("opendir");
+                return -1; // Error occurred while opening directory
+            }
+
+            struct dirent * entry;
+            while ((entry = readdir(dir)) != NULL) {
+                if (strcmp(entry->d_name, filename) == 0) {
+                    closedir(dir);
+                    return TRUE; // Path matches a file in the directory
+                }
+            }
+            closedir(dir);
+        }
+    }
+
+    return FALSE; // No matching file found in the directories
+}
+void free_unix_commands(struct command * command) {
+    for(int i = 0; i < command -> size; i++) {
+        struct file * file = command -> files[i];
+        if(unix_command(file -> name) && file -> name != file -> args[0]) {
+            free(file -> name);
+        }
+    }
+}
+
 int processBuffer(char *buffer, int exit_status) {
     if(TESTING) {
         printf("Buffer is '%s'\n", buffer);
@@ -47,6 +95,7 @@ int processBuffer(char *buffer, int exit_status) {
     struct command * command = parse(buffer);
     if(command != NULL) {
         exit_status = execute(command, exit_status);
+        free_unix_commands(command);
         free_struct_command(command);
         if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
             printf("Exiting ... \n");
@@ -121,6 +170,7 @@ void batch(char * filename, int exit_status) {
     close(file);
 }
 
+
 int main(int argc, char *argv[]){
     getcwd(init_dir, sizeof(init_dir));
     int exit_status = SUCCESS;
@@ -154,6 +204,7 @@ int main(int argc, char *argv[]){
                 traverse_command(command);
 
                 exit_status = execute(command, exit_status);
+                free_unix_commands(command);
                 free_struct_command(command);
                 if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
                     printf("Exiting ... \n");

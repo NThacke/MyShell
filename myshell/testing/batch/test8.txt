@@ -1,0 +1,26 @@
+echo ---------------------
+echo ~    Test 8       ~
+echo ~   Strange Commands ~
+echo ---------------------
+echo The following tests are meant to be stres tests against the parser, as well as the executioner.
+echo 
+echo These tests are designed to fail, and myshell should print errors for each
+echo ---------------------
+../sdjsja sjjs sjsjsjs aspopoakposd njkanwlkd awd... .. /// .. .// / //.
+ehco ||\\ || || ||
+echn nska sk | .>> >> >> >> <.... .. \.
+..s8281023 9128391020 9919990
+8282919203 0|| || || || >..<< << >>> ||| || >>> >> ||| ||| ||| ||||
+..// \\|| ||
+cd.. .. .. . .. || || >>>
+lslslsls | | LLslslslsl 
+ssd\ \ || || asdl 
+s]s]s]s| || || \>> >
+uhijkn njkasd oinlkq 
+jnlwpda9w92
+kaiwd9110101
+..
+.. 
+../
+./
+<<<

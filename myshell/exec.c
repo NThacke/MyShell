@@ -97,7 +97,11 @@ void execute_pipe(struct file * file1, struct file * file2) {
         execv(file2 -> name, file2->args);
 
         perror("Exec failed"); //exec will never return if successful
-        return;
+        if(unix_command(file2 -> name)) {
+            free(file2 -> name);
+        }
+        free_file_struct(file2);
+        exit(EXIT_FAILURE);
     }
     else {
         //parent process, execute file1
@@ -119,7 +123,11 @@ void execute_pipe(struct file * file1, struct file * file2) {
         execv(file1 -> name, file1 -> args);
 
         perror("Exec failed");
-        return;
+        if(unix_command(file1 -> name)) {
+            free(file1 -> name);
+        }
+        free_file_struct(file1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -172,6 +180,9 @@ void execute_file(struct file * file) {
         printf("Executing program '%s'\n", file->name);
     }
     execv(file -> name, file -> args);
+    if(unix_command(file -> name) && file -> name != file ->args[0]) {
+        free(file -> name);
+    }
     free_file_struct(file);
     if(TESTING) {
         printf("Execution failed\n");
@@ -297,7 +308,7 @@ int cd(int argc, char ** argv) {
 }
 
 int built_in_file_name(char * buffer) {
-    return strcmp(buffer, "cd") == 0 || strcmp(buffer, "pwd") == 0 || strcmp(buffer, "which") == 0;
+    return strcmp(buffer, "pwd") == 0 || strcmp(buffer, "which") == 0;
 }
 int is_exit(char * buffer) {
     return strcmp(buffer, "exit") == 0;
@@ -322,7 +333,7 @@ void determine_paths(struct command * command) {
             char * dir = appendFilenameToDirectory(inital_directory(), "built_ins");
             char * path = appendFilenameToDirectory(dir, file -> args[0]);
             free(dir);                                              //dir is malloced on heap and doesn't get referenced any further
-            free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
+            // free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
             file -> name = path;
         }
         else if(is_exit(file->name)){ //do nothing, this is exit command
@@ -340,9 +351,9 @@ void determine_paths(struct command * command) {
                 if(TESTING) {
                     printf("The path is '%s'\n", unix_path);
                 }
-                if(command -> size == 1) {
-                    free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
-                }
+                // if(command -> size == 1) {
+                //     free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
+                // }
                 file -> name = unix_path;
             }
         }
@@ -399,25 +410,25 @@ void special_free(struct command * command) {
         struct file * file1 = command -> files[0];
         struct file * file2 = command -> files[1];
 
-        if(file1 -> input != NULL && file1 -> input != file2 -> name) {
+        if(file1 -> input != NULL && file1 -> input != file2 -> name && file1 -> input != file2 -> args[0]) {
             if(TESTING) {
                 printf("Freeing '%s'\n", file1 -> input);
             }
             free(file1 -> input);
         }
-        if(file1 -> output != NULL && file1 -> output != file2 -> name) {
+        if(file1 -> output != NULL && file1 -> output != file2 -> name && file1 -> output != file2 -> args[0]) {
             if(TESTING) {
                 printf("Freeing '%s'\n", file1 -> output);
             }
             free(file1 -> output);
         }
-        if(file2 -> output != NULL) {
+        if(file2 -> output != NULL && file1 -> name != file2 -> output && file1 -> args[0] != file2 -> output) {
             if(TESTING) {
                 printf("Freeing '%s'\n", file2 -> output);
             }
             free(file2 -> output);
         }
-        if(file2 -> input != NULL && file2 -> input != file1 -> name) {
+        if(file2 -> input != NULL && file2 -> input != file1 -> name && file2 -> input != file1 -> args[0]) {
             if(TESTING) {
                 printf("Freeing '%s'\n", file2 -> input);
             }
@@ -432,8 +443,8 @@ int execute(struct command * command, int exit_status) {
             printf("Execute\n");
         }
         if(command -> size > 2) {
-            printf("Too many executables; mysh can only handle at most one pipe at a time.\n");
-            return EXIT_FAILURE;
+            printf("mysh> : Too many executables; mysh can only handle at most one pipe at a time.\n");
+            return FAILURE;
         }
         determine_paths(command);
 
@@ -469,17 +480,18 @@ int execute(struct command * command, int exit_status) {
                         return EXIT_SUCCESS;
                     }
                     else if(strcmp(file -> args[0], "cd") == 0) {
+                        // free(file -> name);
                         cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
                         return SUCCESS;
                     }
                     else {
-                        printf("Command not recognized : '%s'\n", file -> name);
+                        printf("mysh> : Command not recognized : '%s'\n", file -> name);
                     }
                 }
             }
             if(command -> size == 2 || command -> size == 0) {
                 for(int i = 0; i < command -> size; i++) {
-                    printf("Command not recognized : '%s'\n", command -> files[i] -> name);
+                    printf("mysh> : Command not recognized : '%s'\n", command -> files[i] -> name);
                 }
             }
             special_free(command);

@@ -140,7 +140,7 @@ void free_file_struct(struct file * file) {
             }
             free(file->args[i]);
         }
-        free(file -> name);
+        // free(file -> name);
         free(file->args);
         free(file);
     }
@@ -179,7 +179,7 @@ char ** get_wildcard(char * wildcard) {
     char* directory = NULL;
     char* pattern = NULL;
 
-    char* asterisk_pos = strchr(wildcard, '*');
+    char* asterisk_pos = strrchr(wildcard, '*');
     if (asterisk_pos != NULL) {
         size_t directory_len = asterisk_pos - wildcard;
         while (directory_len > 0 && wildcard[directory_len - 1] != '/') {
@@ -274,17 +274,49 @@ char ** get_wildcard(char * wildcard) {
 
     return matching_files;
 }
-int contains_asterisk(char * token) {
-    while(*token) {
-        if(*token == '*') {
-            return TRUE;
-        }
-        token++;
+char * file_name(char * path) {
+    const char* fileName = path + strlen(path) - 1; // Start at the end of the path
+
+    // Move backward until a directory separator or the beginning of the path is found
+    while (fileName >= path && *fileName != '\\' && *fileName != '/') {
+        fileName--;
     }
-    return FALSE;
+
+    // Move forward by one character to point at the filename
+    fileName++;
+
+    // Calculate the length of the filename
+    size_t fileNameLength = strlen(fileName);
+
+    // Allocate memory for the filename on the heap
+    char* extractedFileName = (char*)malloc((fileNameLength + 1) * sizeof(char));
+    if (extractedFileName == NULL) {
+        printf("Memory allocation failed.\n");
+        return NULL; // Return NULL if allocation fails
+    }
+
+    // Copy the filename to the newly allocated memory
+    strcpy(extractedFileName, fileName);
+
+    return extractedFileName;
+
+}
+/**
+ * Determines if the given token is available to be wildcard matched. 
+ * We allow wildcard matching to occur if the filename, or the string of characters following the last '/' character contains only one asterisk.
+*/
+int wildcard_matching(char * token) {
+    char * filename = file_name(token);
+    if(strchr(filename, '*') != NULL) {
+        int value = strchr(filename, '*') == strrchr(filename, '*'); //if the first and last * occurence are the same, we have a valid wildcard
+        free(filename);
+        return value;
+    }
+    free(filename);
+    return FALSE; //no wildcard token in filename
 }
 void insert(struct LinkedList * tokens, char * token) {
-    if(contains_asterisk(token)) {
+    if(wildcard_matching(token)) {
         char ** wildcards = get_wildcard(token);
         if(wildcards == NULL) {
             add_tail(tokens, token);
@@ -378,34 +410,6 @@ void add_arg(struct file * file, char * arg) {
     file -> size ++;
     file -> args = realloc(file->args, (file -> size) * sizeof(char *));
     file -> args[file -> size -1] = arg;
-}
-
-char * file_name(char * path) {
-    const char* fileName = path + strlen(path) - 1; // Start at the end of the path
-
-    // Move backward until a directory separator or the beginning of the path is found
-    while (fileName >= path && *fileName != '\\' && *fileName != '/') {
-        fileName--;
-    }
-
-    // Move forward by one character to point at the filename
-    fileName++;
-
-    // Calculate the length of the filename
-    size_t fileNameLength = strlen(fileName);
-
-    // Allocate memory for the filename on the heap
-    char* extractedFileName = (char*)malloc((fileNameLength + 1) * sizeof(char));
-    if (extractedFileName == NULL) {
-        printf("Memory allocation failed.\n");
-        return NULL; // Return NULL if allocation fails
-    }
-
-    // Copy the filename to the newly allocated memory
-    strcpy(extractedFileName, fileName);
-
-    return extractedFileName;
-
 }
 int not_redirect(struct DLLNode * node) {
     return strcmp(node -> value, ">") != 0 && strcmp(node -> value, "<") != 0 && strcmp(node -> value, "|");
@@ -504,17 +508,17 @@ struct command * transform(struct LinkedList * tokens) {
                     //nothing; the current token is simply an argument to the current file
                     if(not_redirect(current_token)) {
                 
-                        if(strcmp(current_file -> name, current_token -> value) == 0) {
-                            char * filename = file_name(current_file -> name);
-                            add_arg(current_file, filename);
-                            if(current_token -> value != current_file -> name) { //Since we added the argument /filename/ to the file struct, the current_token -> value will not be freed, and must be freed here. But only if the token and filename are not the same pointer.
-                                free(current_token -> value);
-                            }
-                            current_token -> value = filename;
-                        }
-                        else {
+                        // if(strcmp(current_file -> name, current_token -> value) == 0) {
+                        //     char * filename = file_name(current_file -> name);
+                        //     add_arg(current_file, filename);
+                        //     if(current_token -> value != current_file -> name) { //Since we added the argument /filename/ to the file struct, the current_token -> value will not be freed, and must be freed here. But only if the token and filename are not the same pointer.
+                        //         free(current_token -> value);
+                        //     }
+                        //     current_token -> value = filename;
+                        // }
+                        // else {
                             add_arg(current_file, current_token -> value);
-                        }
+                        // }
                     }
                 }
             }
@@ -577,7 +581,7 @@ int valid(struct LinkedList * tokens) {
                 return FALSE;
             }
 
-            if(previous != NULL && (strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, "|") == 0)) {
+            if(previous != NULL && (strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, ">") == 0 || strcmp(previous -> value, "|") == 0)) {
                 return FALSE;
             }
         }
