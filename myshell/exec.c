@@ -485,13 +485,13 @@ int execute(struct command * command, int exit_status) {
                         return SUCCESS;
                     }
                     else {
-                        printf("Command not recognized : '%s'\n", file -> name);
+                        printf("mysh> : Command not recognized : '%s'\n", file -> name);
                     }
                 }
             }
             if(command -> size == 2 || command -> size == 0) {
                 for(int i = 0; i < command -> size; i++) {
-                    printf("Command not recognized : '%s'\n", command -> files[i] -> name);
+                    printf("mysh> : Command not recognized : '%s'\n", command -> files[i] -> name);
                 }
             }
             special_free(command);
