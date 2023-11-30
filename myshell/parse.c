@@ -577,7 +577,7 @@ int valid(struct LinkedList * tokens) {
                 return FALSE;
             }
 
-            if(previous != NULL && (strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, "|") == 0)) {
+            if(previous != NULL && (strcmp(previous -> value, "<") == 0 || strcmp(previous -> value, ">") == 0 || strcmp(previous -> value, "|") == 0)) {
                 return FALSE;
             }
         }
