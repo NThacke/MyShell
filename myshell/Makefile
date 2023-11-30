@@ -21,4 +21,4 @@ output_args: ./testing/executables/output_args.c
 .PHONY: clean
 
 clean:
-	rm -f mysh ./built_ins/pwd ./built_ins/which ./testing/executables/output_args ./testing/executables/middle_man
+	rm -f mysh ./built_ins/pwd ./built_ins/which ./testing/executables/output_args ./testing/executables/middle_man ./testing/output/*
