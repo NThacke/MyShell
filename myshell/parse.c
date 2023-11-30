@@ -8,7 +8,10 @@
 #include <dirent.h>
 #include "myshell.h"
 
-#define TESTING 0
+
+enum conditional { 
+    then_, else_, nil_
+};
 
 struct command {
     /**
@@ -19,6 +22,15 @@ struct command {
      * @brief The number of files contained within files.
      */
     int size;
+
+    /**
+     * @brief The conditional state of this command. Either then_ else_ or nil_.
+     * 
+     * then_    execute this command only if the previous command succeeded
+     * else_    execute this command only if the previous command did not succeed
+     * nil_     execute this command regardless of previous command status
+     */
+    enum conditional condition;
 };
 
 /**
@@ -84,6 +96,20 @@ void traverseFile(struct file * file) {
 }
 
 void traverse_command(struct command * command) {
+    switch(command -> condition) {
+        case then_ : {
+            printf("THEN COMMAND\n");
+            break;
+        }
+        case else_ : {
+            printf("ELSE COMMAND\n");
+            break;
+        }
+        case nil_ : {
+            printf("NOT CONDITIONAL\n");
+            break;
+        }
+    }
     for(int i = 0; i<command -> size; i++) {
         traverseFile(command -> files[i]);
     }
@@ -100,6 +126,7 @@ struct command * new_command_struct() {
     struct command * c = malloc(sizeof(struct command));
     c -> files = malloc(sizeof(struct file *));
     c -> size = 0;
+    c -> condition = nil_;
     return c;
 }
 
@@ -381,6 +408,18 @@ char * file_name(char * path) {
 int not_redirect(struct DLLNode * node) {
     return strcmp(node -> value, ">") != 0 && strcmp(node -> value, "<") != 0 && strcmp(node -> value, "|");
 }
+
+enum conditional conditional_(char * token) {
+    if(token != NULL) {
+        if(strcmp(token, "then") == 0) {
+            return then_;
+        }
+        if(strcmp(token, "else") == 0) {
+            return else_;
+        }
+    }
+    return nil_;
+}
 /**
  * @brief This function transforms the LinkedList of tokens into a struct command.
  * 
@@ -400,6 +439,30 @@ struct command * transform(struct LinkedList * tokens) {
         enum redirect redirect = nil;
 
         while(current_token != NULL) {
+
+            printf("Current token is '%s'\n", current_token -> value);
+
+            enum conditional condition = conditional_(current_token -> value);
+            if(current_token == tokens -> head) { //conditionals can only be the first token; any other conditional is treated as an argument
+                switch(condition) {
+                    case then_ : {
+                        command -> condition = then_;
+                        break;
+                    }
+                    case else_ : {
+                        command -> condition = else_;
+                        break;
+                    }
+                    case nil_ : {
+
+                    }
+                }
+                if(condition != nil_) {
+                    free(current_token -> value);
+                    current_token = current_token -> next;
+                    continue;
+                }
+            }
 
             if(current_file -> name == NULL) {
                 current_file -> name = current_token -> value;
@@ -506,6 +569,9 @@ int valid(struct LinkedList * tokens) {
     struct DLLNode * previous = NULL;
 
     while(current != NULL) {
+        if(previous != NULL && strcmp(previous -> value, "|") == 0 && (strcmp(current -> value, "then") == 0 || strcmp(current -> value, "else") == 0)) {
+            return FALSE;
+        }
         if( (strcmp(current -> value, ">") == 0 || strcmp(current -> value, "<") == 0 || strcmp(current -> value, "|") == 0)) {
             if(previous == NULL || current -> next == NULL) {
                 return FALSE;
