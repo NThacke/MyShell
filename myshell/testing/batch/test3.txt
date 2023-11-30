@@ -4,3 +4,6 @@ echo ~    Pipes         ~
 echo ---------------------
 echo './testing/executables/output_args arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg 10 pipe middle_man'
 ./testing/executables/output_args arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 | ./testing/executables/middle_man
+echo ./testing/executables/bad_program_name pipe ./testing/executables/bad_program_name
+./testing/executables/bad_program_name | ./testing/executables/bad_program_name
+exit
