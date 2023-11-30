@@ -1,0 +1,9 @@
+echo ---------------------
+echo ~    Test 5       ~
+echo ~    Conditionals ~
+echo ---------------------
+echo hello world
+then echo hello with a then statement
+else echo this shouldn't be echoed
+else echo this should be echoed
+then exit
