@@ -45,12 +45,17 @@ int processBuffer(char *buffer, int exit_status) {
         printf("Buffer is '%s'\n", buffer);
     }
     struct command * command = parse(buffer);
-    exit_status = execute(command, exit_status);
-    free_struct_command(command);
-    if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
-        printf("Exiting ... \n");
+    if(command != NULL) {
+        exit_status = execute(command, exit_status);
+        free_struct_command(command);
+        if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
+            printf("Exiting ... \n");
+        }
+        return exit_status;
     }
-    return exit_status;
+    else {
+        return FAILURE;
+    }
 
 }
 
@@ -143,12 +148,12 @@ int main(int argc, char *argv[]){
             struct command * command = parse(user_input);
 
             if(command == NULL) {
-                printf("Command not recognized\n");
+                exit_status = FAILURE;
             }
             else {
                 traverse_command(command);
 
-                int exit_status = execute(command, exit_status);
+                exit_status = execute(command, exit_status);
                 free_struct_command(command);
                 if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
                     printf("Exiting ... \n");
