@@ -569,7 +569,7 @@ int valid(struct LinkedList * tokens) {
     struct DLLNode * previous = NULL;
 
     while(current != NULL) {
-        if(previous != NULL && strcmp(previous -> value, "|") == 0 && (strcmp(current -> value, "then") == 0 || strcmp(current -> value, "else") == 0)) {
+        if(previous != NULL && strcmp(previous -> value, "|") == 0 && (strcmp(current -> value, "then") == 0 || strcmp(current -> value, "else") == 0)) { //use of then/else after a pipeline is invalid
             return FALSE;
         }
         if( (strcmp(current -> value, ">") == 0 || strcmp(current -> value, "<") == 0 || strcmp(current -> value, "|") == 0)) {
