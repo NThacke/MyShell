@@ -1,0 +1,9 @@
+echo ---------------------
+echo ~    Test 9       ~
+echo ~   Wildcards ~
+echo ---------------------
+
+./testing/executables/output_args ./testing/batch/* > ./testing/output/test9_a_.txt
+./testing/executables/output_args ./testing/wildcards/test*test*test*/* > ./testing/output/test9_b_.txt
+./testing/executables/output_args ./testing*testing/nothing/is/here/* > ./testing/output/test9_c_.txt
+./testing/executables/output_args ./i/am/just/a/bad/directory/with/a/wildcard/treat/me/as/argument/*.txt > ./testing/output/test9_såå_.txt
