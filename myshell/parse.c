@@ -8,7 +8,10 @@
 #include <dirent.h>
 #include "myshell.h"
 
-#define TESTING 0
+
+enum conditional { 
+    then_, else_, nil_
+};
 
 struct command {
     /**
@@ -19,6 +22,15 @@ struct command {
      * @brief The number of files contained within files.
      */
     int size;
+
+    /**
+     * @brief The conditional state of this command. Either then_ else_ or nil_.
+     * 
+     * then_    execute this command only if the previous command succeeded
+     * else_    execute this command only if the previous command did not succeed
+     * nil_     execute this command regardless of previous command status
+     */
+    enum conditional condition;
 };
 
 /**
@@ -84,8 +96,24 @@ void traverseFile(struct file * file) {
 }
 
 void traverse_command(struct command * command) {
-    for(int i = 0; i<command -> size; i++) {
-        traverseFile(command -> files[i]);
+    if(TESTING) {
+        switch(command -> condition) {
+            case then_ : {
+                printf("THEN COMMAND\n");
+                break;
+            }
+            case else_ : {
+                printf("ELSE COMMAND\n");
+                break;
+            }
+            case nil_ : {
+                printf("NOT CONDITIONAL\n");
+                break;
+            }
+        }
+        for(int i = 0; i<command -> size; i++) {
+            traverseFile(command -> files[i]);
+        }
     }
 }
 
@@ -100,6 +128,7 @@ struct command * new_command_struct() {
     struct command * c = malloc(sizeof(struct command));
     c -> files = malloc(sizeof(struct file *));
     c -> size = 0;
+    c -> condition = nil_;
     return c;
 }
 
@@ -381,6 +410,18 @@ char * file_name(char * path) {
 int not_redirect(struct DLLNode * node) {
     return strcmp(node -> value, ">") != 0 && strcmp(node -> value, "<") != 0 && strcmp(node -> value, "|");
 }
+
+enum conditional conditional_(char * token) {
+    if(token != NULL) {
+        if(strcmp(token, "then") == 0) {
+            return then_;
+        }
+        if(strcmp(token, "else") == 0) {
+            return else_;
+        }
+    }
+    return nil_;
+}
 /**
  * @brief This function transforms the LinkedList of tokens into a struct command.
  * 
@@ -400,6 +441,28 @@ struct command * transform(struct LinkedList * tokens) {
         enum redirect redirect = nil;
 
         while(current_token != NULL) {
+
+            enum conditional condition = conditional_(current_token -> value);
+            if(current_token == tokens -> head) { //conditionals can only be the first token; any other conditional is treated as an argument
+                switch(condition) {
+                    case then_ : {
+                        command -> condition = then_;
+                        break;
+                    }
+                    case else_ : {
+                        command -> condition = else_;
+                        break;
+                    }
+                    case nil_ : {
+
+                    }
+                }
+                if(condition != nil_) {
+                    free(current_token -> value);
+                    current_token = current_token -> next;
+                    continue;
+                }
+            }
 
             if(current_file -> name == NULL) {
                 current_file -> name = current_token -> value;
@@ -506,6 +569,9 @@ int valid(struct LinkedList * tokens) {
     struct DLLNode * previous = NULL;
 
     while(current != NULL) {
+        if(previous != NULL && strcmp(previous -> value, "|") == 0 && (strcmp(current -> value, "then") == 0 || strcmp(current -> value, "else") == 0)) { //use of then/else after a pipeline is invalid
+            return FALSE;
+        }
         if( (strcmp(current -> value, ">") == 0 || strcmp(current -> value, "<") == 0 || strcmp(current -> value, "|") == 0)) {
             if(previous == NULL || current -> next == NULL) {
                 return FALSE;
@@ -520,7 +586,42 @@ int valid(struct LinkedList * tokens) {
     }
     return TRUE;
 }
+void add_padding(char *buffer) {
+    size_t len = strlen(buffer);
+    size_t newLen = len;
 
+    for (size_t i = 0; i < len; i++) {
+        if (buffer[i] == '<' || buffer[i] == '>' || buffer[i] == '|') {
+            newLen += 2; // Increment length for two additional spaces
+        }
+    }
+
+    // Allocate memory for the modified buffer
+    char *modifiedBuffer = (char *)malloc((newLen + 1) * sizeof(char));
+    if (modifiedBuffer == NULL) {
+        printf("Memory allocation failed.\n");
+        return;
+    }
+
+    size_t j = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (buffer[i] == '<' || buffer[i] == '>' || buffer[i] == '|') {
+            modifiedBuffer[j++] = ' '; // Add space before the special character
+            modifiedBuffer[j++] = buffer[i]; // Copy the special character
+            modifiedBuffer[j++] = ' '; // Add space after the special character
+        } else {
+            modifiedBuffer[j++] = buffer[i]; // Copy other characters as they are
+        }
+    }
+
+    modifiedBuffer[j] = '\0'; // Null-terminate the modified buffer
+
+    // Copy the modified buffer back to the original buffer
+    strcpy(buffer, modifiedBuffer);
+
+    // Free the dynamically allocated memory
+    free(modifiedBuffer);
+}
 void separateTokens(char *array) {
     int i = 0;
     int j = 0;
@@ -544,6 +645,14 @@ void separateTokens(char *array) {
     }
     
     array[j] = '\0'; // Null-terminate the modified string
+}
+
+void free_values(struct LinkedList * tokens) {
+    struct DLLNode * current = tokens -> head;
+    while(current != NULL) {
+        free(current -> value);
+        current = current -> next;
+    }
 }
 
 /**
@@ -572,7 +681,7 @@ struct command * parse(char * buffer) {
      * If the token is '>' then we know that the next token following this token will be the standard output for the program.
      * If the token is '|' then we know that the next token following this is indeed another program; the input of which is the output of the current program.
      */
-
+    add_padding(buffer);
     separateTokens(buffer);
     struct LinkedList * tokens = tokenize(buffer);
     if(TESTING) {
@@ -586,6 +695,8 @@ struct command * parse(char * buffer) {
         return command;
     }
     else { //An invalid command
+        printf("mysh> : Invalid command.\n");
+        free_values(tokens);  //command struct normally handles freeing the values, but we're returning a NULL command, which will never have its elements freed!
         free_DLL(tokens);
         return NULL;
     }

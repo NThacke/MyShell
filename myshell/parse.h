@@ -1,3 +1,7 @@
+enum conditional { 
+    then_, else_, nil_
+};
+
 struct command {
     /**
      * @brief A series of files which consist of the command.
@@ -7,6 +11,8 @@ struct command {
      * @brief The number of files contained within files.
      */
     int size;
+
+    enum conditional condition;
 };
 
 struct file {

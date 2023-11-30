@@ -1,0 +1,7 @@
+echo ---------------------
+echo ~    Test 7       ~
+echo ~   Unix File Operations ~
+echo ---------------------
+touch ./testing/output/test7_a_testfile.txt
+cat DLL.c > ./testing/output/test7_a_testfile.txt
+cp ./testing/output/test7_a_testfile.txt testing/output/test7_a_copiedfile.txt

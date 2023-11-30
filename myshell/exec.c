@@ -8,9 +8,6 @@
 #include <sys/wait.h>
 #include <limits.h>
 
-
-#define TESTING 0
-
 /**
  * @brief Determines and returns the number of processes which must be initated to execute the given command.
  * 
@@ -428,65 +425,71 @@ void special_free(struct command * command) {
         }
     }
 }
-int execute(struct command * command) {
+int execute(struct command * command, int exit_status) {
     
-    if(TESTING) {
-        printf("Execute\n");
-    }
-    if(command -> size > 2) {
-        printf("Too many executables; mysh can only handle at most one pipe at a time.\n");
-        return -1;
-    }
-    determine_paths(command);
-
-    int * arr = deteremine_program_indecies(command);
-    if(TESTING) {
-        if(arr[0] >= 0) {
-            printf("The first program index is '%d' and is the program '%s'\n", arr[0], command -> files[arr[0]] -> name);
+    if( (command -> condition == then_ && exit_status == SUCCESS) || (command -> condition == else_ && exit_status == FAILURE) || (command -> condition == nil_)) {
+        if(TESTING) {
+            printf("Execute\n");
         }
-        if(arr[1] >= 0) {
-            printf("The second program index is '%d' and is the program '%s'\n", arr[1], command -> files[arr[1]] -> name);
+        if(command -> size > 2) {
+            printf("Too many executables; mysh can only handle at most one pipe at a time.\n");
+            return EXIT_FAILURE;
         }
-    }
+        determine_paths(command);
 
-    if(arr[0] >= 0 && arr[1] >= 0) { //two programs, we are piping!
-        struct file * file1 = command -> files[arr[0]];
-        struct file * file2 = command -> files[arr[1]];
-        exec_pipe(file1, file2);
-        special_free(command);
-    }
-    else if(arr[0] >= 0) { //one executable program
-        struct file * file1 = command -> files[arr[0]];
-        exec_file(file1);
-        special_free(command);
+        int * arr = deteremine_program_indecies(command);
+        if(TESTING) {
+            if(arr[0] >= 0) {
+                printf("The first program index is '%d' and is the program '%s'\n", arr[0], command -> files[arr[0]] -> name);
+            }
+            if(arr[1] >= 0) {
+                printf("The second program index is '%d' and is the program '%s'\n", arr[1], command -> files[arr[1]] -> name);
+            }
+        }
+
+        if(arr[0] >= 0 && arr[1] >= 0) { //two programs, we are piping!
+            struct file * file1 = command -> files[arr[0]];
+            struct file * file2 = command -> files[arr[1]];
+            exec_pipe(file1, file2);
+            special_free(command);
+        }
+        else if(arr[0] >= 0) { //one executable program
+            struct file * file1 = command -> files[arr[0]];
+            exec_file(file1);
+            special_free(command);
+        }
+        else {
+            //no executable program
+            free(arr);
+            if(command -> size == 1) {
+                struct file * file = command -> files[0];
+                if(file -> name != NULL) {
+                    if(strcmp(file -> name, "exit") == 0) {
+                        special_free(command);
+                        return EXIT_SUCCESS;
+                    }
+                    else if(strcmp(file -> args[0], "cd") == 0) {
+                        cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
+                        return SUCCESS;
+                    }
+                    else {
+                        printf("Command not recognized : '%s'\n", file -> name);
+                    }
+                }
+            }
+            if(command -> size == 2 || command -> size == 0) {
+                for(int i = 0; i < command -> size; i++) {
+                    printf("Command not recognized : '%s'\n", command -> files[i] -> name);
+                }
+            }
+            special_free(command);
+            return FAILURE;
+        }
+        // printf("Exiting execute()...\n");
+        free(arr);
+        return SUCCESS;
     }
     else {
-        //no executable program
-        free(arr);
-        if(command -> size == 1) {
-            struct file * file = command -> files[0];
-            if(file -> name != NULL) {
-                if(strcmp(file -> name, "exit") == 0) {
-                    special_free(command);
-                    return EXIT_SUCCESS;
-                }
-                else if(strcmp(file -> args[0], "cd") == 0) {
-                    cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
-                }
-                else {
-                    printf("Command not recognized : '%s'\n", file -> name);
-                }
-            }
-        }
-        if(command -> size == 2 || command -> size == 0) {
-            for(int i = 0; i < command -> size; i++) {
-                printf("Command not recognized : '%s'\n", command -> files[i] -> name);
-            }
-        }
-        special_free(command);
-        return -1;
+        return FAILURE;
     }
-    // printf("Exiting execute()...\n");
-    free(arr);
-    return -1;
 }

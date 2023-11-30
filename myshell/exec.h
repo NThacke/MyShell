@@ -1,1 +1,1 @@
-int execute(struct command * command);
+int execute(struct command * command, int exit_status);

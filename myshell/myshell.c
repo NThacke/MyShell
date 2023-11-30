@@ -8,12 +8,8 @@
 #include <dirent.h>
 #include "exec.h"
 #include <fcntl.h>
+#include "myshell.h"
 
-
-#define TRUE 0
-#define FALSE 1
-
-#define TESTING 0
 
 #define INITIAL_BUFFER_SIZE 1024
 #define BUFFER_INCREMENT 1024
@@ -44,16 +40,21 @@ char * inital_directory(void) {
     return init_dir;
 }
 
-int processBuffer(char *buffer) {
+int processBuffer(char *buffer, int exit_status) {
     if(TESTING) {
         printf("Buffer is '%s'\n", buffer);
     }
     struct command * command = parse(buffer);
-    int value = execute(command);
-    free_struct_command(command);
-    if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
-        printf("Exiting ... \n");
-        return value;
+    if(command != NULL) {
+        exit_status = execute(command, exit_status);
+        free_struct_command(command);
+        if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
+            printf("Exiting ... \n");
+        }
+        return exit_status;
+    }
+    else {
+        return FAILURE;
     }
 
 }
@@ -70,7 +71,7 @@ void resetBuffer(char **buffer, int *totalRead, int *bufferSize) {
     *bufferSize = INITIAL_BUFFER_SIZE;
 }
 
-void batch(char * filename) {
+void batch(char * filename, int exit_status) {
     int file = open(filename, O_RDONLY);
     if (file == -1) {
         fprintf(stderr, "Error opening file %s\n", filename);
@@ -90,6 +91,9 @@ void batch(char * filename) {
     int bufferSize = INITIAL_BUFFER_SIZE;
     char currentChar;
     while ((bytesRead = read(file, &currentChar, 1)) > 0) {
+        if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
+            return;
+        }
         if (currentChar != '\n') {
             if (totalRead >= bufferSize - 1) {
                 bufferSize += BUFFER_INCREMENT;
@@ -103,14 +107,14 @@ void batch(char * filename) {
             buffer[totalRead++] = currentChar;
         } else {
             buffer[totalRead] = '\0'; // Ensure the buffer ends with a null terminator
-            processBuffer(buffer);
+            exit_status = processBuffer(buffer, exit_status);
             resetBuffer(&buffer, &totalRead, &bufferSize);
         }
     }
 
     if (totalRead > 0) {
         buffer[totalRead] = '\0'; // Ensure the last line ends with a null terminator
-        processBuffer(buffer);
+        exit_status = processBuffer(buffer, exit_status);
     }
 
     free(buffer);
@@ -119,9 +123,10 @@ void batch(char * filename) {
 
 int main(int argc, char *argv[]){
     getcwd(init_dir, sizeof(init_dir));
+    int exit_status = SUCCESS;
     if (argc > 1) {
         // Batch mode
-        batch(argv[1]);
+        batch(argv[1], exit_status);
     }
     else {
         // Set a 5kb buffer which is equal to 5120 chars
@@ -143,15 +148,16 @@ int main(int argc, char *argv[]){
             struct command * command = parse(user_input);
 
             if(command == NULL) {
-                printf("Command not recognized\n");
+                exit_status = FAILURE;
             }
             else {
                 traverse_command(command);
 
-                int value = execute(command);
+                exit_status = execute(command, exit_status);
                 free_struct_command(command);
-                if(value == EXIT_FAILURE || value == EXIT_SUCCESS) {
-                    return value;
+                if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
+                    printf("Exiting ... \n");
+                    return exit_status;
                 }
             }
             memset(user_input, 0, sizeof user_input);
