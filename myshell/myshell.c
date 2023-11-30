@@ -151,6 +151,7 @@ int main(int argc, char *argv[]){
                 int exit_status = execute(command, exit_status);
                 free_struct_command(command);
                 if(exit_status == EXIT_FAILURE || exit_status == EXIT_SUCCESS) {
+                    printf("Exiting ... \n");
                     return exit_status;
                 }
             }
