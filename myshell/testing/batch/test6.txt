@@ -1,0 +1,6 @@
+echo ---------------------
+echo ~    Test 6       ~
+echo ~    Conditionals & Pipes ~
+echo ---------------------
+./testing/executables/output_args | then ./testing/executables/middle_man
+else echo hello
