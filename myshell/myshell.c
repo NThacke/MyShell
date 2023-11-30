@@ -82,7 +82,7 @@ int unix_command(char * inputPath) {
 void free_unix_commands(struct command * command) {
     for(int i = 0; i < command -> size; i++) {
         struct file * file = command -> files[i];
-        if(unix_command(file -> name)) {
+        if(unix_command(file -> name) && file -> name != file -> args[0]) {
             free(file -> name);
         }
     }

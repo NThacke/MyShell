@@ -6,3 +6,4 @@
 #define FAILURE 28201
 
 char * inital_directory(void);
+int unix_command(char * path);
