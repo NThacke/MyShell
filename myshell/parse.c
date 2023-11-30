@@ -647,6 +647,14 @@ void separateTokens(char *array) {
     array[j] = '\0'; // Null-terminate the modified string
 }
 
+void free_values(struct LinkedList * tokens) {
+    struct DLLNode * current = tokens -> head;
+    while(current != NULL) {
+        free(current -> value);
+        current = current -> next;
+    }
+}
+
 /**
  * @brief Parses the given command-line into a struct command.
  * 
@@ -687,6 +695,8 @@ struct command * parse(char * buffer) {
         return command;
     }
     else { //An invalid command
+        printf("mysh> : Invalid command.\n");
+        free_values(tokens);  //command struct normally handles freeing the values, but we're returning a NULL command, which will never have its elements freed!
         free_DLL(tokens);
         return NULL;
     }
