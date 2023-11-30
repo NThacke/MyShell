@@ -1,0 +1,42 @@
+echo ---------------------
+echo ~    Test 4        ~
+echo ~    Redirection   ~
+echo ---------------------
+echo ~     Test A       ~
+echo ---------------------
+echo testing/executables/output_args foo bar quux baz this is a test of sending output to a file :D 'output redirect' testing/output/test4_a_output.txt 
+testing/executables/output_args foo bar quux baz this is a test of sending output to a file :D > testing/output/test4_a_output.txt 
+echo ---------------------
+echo ~  Test A Successful ~
+echo ---------------------
+echo ~  Test B     ~
+echo ---------------------
+echo The following test will try to redirect output to a file belonging to a directory which doesn't exit.
+echo 
+echo testing/executables/output_args foo bar quux baz 'output redirect' /bad/directory/name/output.txt
+echo ---------------------
+testing/executables/output_args foo bar quux baz > /bad/directory/name/output.txt
+echo ---------------------
+echo Test B Successful
+echo ---------------------
+echo ~  Test C ~
+echo ---------------------
+echo The following test will try to open an executable file which does not exist, and send it to an output file which does exist.
+echo 
+echo bad/directory/name/output_args foo bar quux baz 'output redirect' /testing/output/test4_c_output.txt
+echo ---------------------
+bad/directory/name/output_args foo bar quux baz > /testing/output/test4_c_output.txt
+echo ---------------------
+echo Test C Successful
+echo ---------------------
+echo ~  Test D ~
+echo ---------------------
+echo The following test will try to open an executable file which does not exist, and send it to an output file which does not exist.
+echo 
+echo bad/directory/name/output_args foo bar quux baz 'output redirect' bad/testing/output/test4_c_output.txt
+echo ---------------------
+bad/directory/name/output_args foo bar quux baz > bad/testing/output/test4_c_output.txt
+echo ---------------------
+echo Test D Successful
+echo ---------------------
+exit
