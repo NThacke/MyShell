@@ -39,4 +39,12 @@ bad/directory/name/output_args foo bar quux baz > bad/testing/output/test4_c_out
 echo ---------------------
 echo Test D Successful
 echo ---------------------
-exit
+echo ~  Test E ~
+echo ---------------------
+echo The following test will test redirection without use of white-space characters.
+echo 
+echo testing/executables/output_args arg1 arg2 arg3 arg4 arg5'output redirect'testing/output/test4_e_output.txt
+testing/executables/output_args arg1 arg2 arg3 arg4 arg5>testing/output/test4_e_output.txt
+echo ---------------------
+echo Test E Successful
+echo ---------------------
