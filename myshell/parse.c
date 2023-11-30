@@ -96,22 +96,24 @@ void traverseFile(struct file * file) {
 }
 
 void traverse_command(struct command * command) {
-    switch(command -> condition) {
-        case then_ : {
-            printf("THEN COMMAND\n");
-            break;
+    if(TESTING) {
+        switch(command -> condition) {
+            case then_ : {
+                printf("THEN COMMAND\n");
+                break;
+            }
+            case else_ : {
+                printf("ELSE COMMAND\n");
+                break;
+            }
+            case nil_ : {
+                printf("NOT CONDITIONAL\n");
+                break;
+            }
         }
-        case else_ : {
-            printf("ELSE COMMAND\n");
-            break;
+        for(int i = 0; i<command -> size; i++) {
+            traverseFile(command -> files[i]);
         }
-        case nil_ : {
-            printf("NOT CONDITIONAL\n");
-            break;
-        }
-    }
-    for(int i = 0; i<command -> size; i++) {
-        traverseFile(command -> files[i]);
     }
 }
 
