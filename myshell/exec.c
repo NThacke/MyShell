@@ -322,7 +322,7 @@ void determine_paths(struct command * command) {
             char * dir = appendFilenameToDirectory(inital_directory(), "built_ins");
             char * path = appendFilenameToDirectory(dir, file -> args[0]);
             free(dir);                                              //dir is malloced on heap and doesn't get referenced any further
-            free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
+            // free(file -> name);                                     //This is a strange location to free; the most basic explanation being that we are about to overwrite file -> name, and so we need to free our previous pointer that is there. Since we're in this function, this located must have been allocated previously.
             file -> name = path;
         }
         else if(is_exit(file->name)){ //do nothing, this is exit command
@@ -340,9 +340,9 @@ void determine_paths(struct command * command) {
                 if(TESTING) {
                     printf("The path is '%s'\n", unix_path);
                 }
-                if(command -> size == 1) {
-                    free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
-                }
+                // if(command -> size == 1) {
+                //     free(file -> name);                         //we no longer refer to this, we overwrite it, but need to still free this address
+                // }
                 file -> name = unix_path;
             }
         }
@@ -469,6 +469,7 @@ int execute(struct command * command, int exit_status) {
                         return EXIT_SUCCESS;
                     }
                     else if(strcmp(file -> args[0], "cd") == 0) {
+                        free(file -> name);
                         cd(file -> size -1, file ->args); //-1 because NULL does not count as an argument
                         return SUCCESS;
                     }
