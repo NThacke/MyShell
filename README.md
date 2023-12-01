@@ -1,6 +1,37 @@
 # MyShell
 A marked-down version of a shell program, similar to bash or zsh
 
+## Execution
+
+To execute MyShell follow the following prompts.
+
+### Compilation
+
+Within the directory myshell, execute the command
+
+> $ make
+
+This compiles the executable ./mysh as well dependencies, such as pwd, which, and test cases.
+
+### Interactive Mode
+
+To enter interactive mode, execute
+
+> $ ./mysh
+
+### Batch Mode
+
+To enter batch mode, execute
+
+> $ ./mysh somefile.txt
+
+
+### Clean
+
+To clean the directories and remove compiled executables, execute
+
+> $ make clean
+
 ## Functionality
 
 
@@ -56,7 +87,11 @@ Test files can be located under *./testing/*
 ### Batch
 *./testing/batch/*
 
-These testing files are meant to be used in batch mode. Simply run ./mysh testing/batch/test1.txt or similar to obtain batch tests.
+These testing files are meant to be used in batch mode. Simply run 
+
+> $ ./mysh testing/batch/test1.txt
+
+or similar tests to execute tests.
 
 
 
