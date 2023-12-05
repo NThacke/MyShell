@@ -1,6 +1,8 @@
 # MyShell
 A marked-down version of a shell program, similar to bash or zsh
 
+Author : Nicholas Thacke (nct36) of Rutgers University, New Brunswick
+
 ## Exectuion
 
 To execute *mysh*, perform the following commands.
